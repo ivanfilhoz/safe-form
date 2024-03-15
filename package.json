@@ -1,0 +1,63 @@
+{
+  "name": "safe-form",
+  "version": "1.0.0",
+  "description": "Type-safe forms with server-side validation.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "vite build",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivanfilhoz/safe-form.git"
+  },
+  "keywords": [
+    "react",
+    "safe",
+    "form",
+    "next",
+    "nextjs",
+    "zod",
+    "hook",
+    "validation",
+    "server",
+    "action",
+    "canary"
+  ],
+  "author": "Ivan Filho",
+  "bugs": {
+    "url": "https://github.com/ivanfilhoz/safe-form/issues"
+  },
+  "homepage": "https://github.com/ivanfilhoz/safe-form#readme",
+  "devDependencies": {
+    "@testing-library/react": "^14.2.1",
+    "@types/node": "^20.11.25",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.18",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.1.3",
+    "jsdom": "^24.0.0",
+    "next": "^14",
+    "postcss": "^8.4.35",
+    "prettier": "^3.2.5",
+    "prettier-config-standard": "^7.0.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.5",
+    "vitest": "^1.3.1"
+  },
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "zod": "^3"
+  },
+  "peerDependencies": {
+    "next": "^14",
+    "react": "^18",
+    "react-dom": "^18",
+    "zod": "^3"
+  }
+}
