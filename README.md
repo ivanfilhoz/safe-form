@@ -10,6 +10,10 @@
 - ✅ Server error handling
 - ✅ Automatic input binding
 
+## Requirements
+
+- [Next.js](https://nextjs.org/) >14
+
 ## Install
 
 ```bash
@@ -88,3 +92,7 @@ export const HelloForm = () => {
   )
 }
 ```
+
+## License
+
+MIT
