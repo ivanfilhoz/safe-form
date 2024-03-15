@@ -1,146 +1,172 @@
-import { useRef as C, useTransition as O, useState as x, useCallback as i, createRef as Z } from "react";
-import { useFormState as _, flushSync as q } from "react-dom";
-class z extends Error {
-  constructor(n) {
-    super(n), this.message = n;
-  }
+import { useRef as M, useTransition as V, useState as L, useCallback as p, createRef as h, useEffect as Z } from "react";
+import { useFormState as q, flushSync as z } from "react-dom";
+class B extends Error {
 }
-const D = (t) => t.flatten().fieldErrors, I = (t) => {
-  var n;
-  return t.type === "checkbox" ? t.checked : t.type === "number" ? parseFloat(t.value) : t.type === "file" ? t.files ?? null : t.type === "radio" ? t.checked ? t.value : null : t.type === "date" ? ((n = t.valueAsDate) == null ? void 0 : n.toISOString()) ?? null : t.value;
-}, H = ({
-  action: t,
-  schema: n,
-  initialState: E,
-  initialValues: b,
-  validateOnBlur: f,
-  validateOnChange: a
-}) => {
-  const e = C(null), [A, P] = O(), [c, d] = _(t, E ?? null), [R, l] = x({}), [u, k] = x(
-    b ?? {}
-  ), v = i(() => {
-    if (!e.current)
-      return u;
-    let r = u;
-    if (e.current) {
-      console.log(e.current);
-      for (const [o, s] of Object.entries(e.current))
-        s != null && s.current && (r[o] = I(s.current));
-      k({
-        ...u,
-        ...r
-      });
+const k = (r) => r.flatten().fieldErrors, O = "__safe-form-scalars", G = (r) => {
+  const n = new FormData();
+  let o = {};
+  for (const [l, i] of Object.entries(r)) {
+    if (i instanceof File) {
+      n.append(l, i);
+      continue;
     }
-    return r;
-  }, [e, u]), w = i(() => {
+    o[l] = i;
+  }
+  return n.append(O, JSON.stringify(o)), n;
+}, K = (r) => {
+  const n = {};
+  for (const [o, l] of Array.from(r.entries())) {
+    if (o === O) {
+      const i = JSON.parse(l);
+      for (const [d, a] of Object.entries(i))
+        n[d] = a;
+      continue;
+    }
+    n[o] = l;
+  }
+  return n;
+}, N = (r) => {
+  var n, o;
+  if (r instanceof HTMLSelectElement || r instanceof HTMLTextAreaElement)
+    return r.value;
+  if (r.type === "checkbox")
+    return r.checked;
+  if (r.type === "number") {
+    const l = parseFloat(r.value || "0");
+    return isNaN(l) ? null : l;
+  }
+  return r.type === "file" ? ((n = r.files) == null ? void 0 : n[0]) ?? null : r.type === "radio" ? r.checked ? r.value : null : r.type === "date" ? ((o = r.valueAsDate) == null ? void 0 : o.toISOString()) ?? null : r.value;
+}, W = ({
+  action: r,
+  schema: n,
+  initialState: o,
+  initialValues: l,
+  validateOnBlur: i,
+  validateOnChange: d,
+  onSubmit: a,
+  onSuccess: b,
+  onError: D
+}) => {
+  const s = M(null), [P, w] = V(), [e, y] = q(r, o ?? null), [R, v] = L({}), [f, g] = L(
+    l ?? {}
+  ), F = p(() => {
+    if (!s.current)
+      return f;
+    let t = f;
+    for (const [c, u] of Object.entries(s.current))
+      u != null && u.current && (t[c] = N(u.current));
+    return g({
+      ...f,
+      ...t
+    }), t;
+  }, [s, f]), T = p(() => {
+    const t = F();
     if (!n)
       return !0;
-    const r = v(), o = n.safeParse(r);
-    return o.success ? (l({}), !0) : (l(D(o.error)), !1);
-  }, [l, n, e, v]), h = i(
-    (r) => u[r],
-    [u]
-  ), j = i(
-    (r, o) => {
-      k((s) => ({
-        ...s,
-        [r]: o
+    const c = n.safeParse(t);
+    return c.success ? (v({}), !0) : (v(k(c.error)), !1);
+  }, [v, n, s, F]), _ = p(
+    (t) => f[t],
+    [f]
+  ), j = p(
+    (t, c) => {
+      g((u) => ({
+        ...u,
+        [t]: c
       }));
     },
-    [e, k]
-  ), p = i(
-    (r) => {
-      var F, y;
+    [s, g]
+  ), E = p(
+    (t) => {
+      var x, I;
       if (!n)
         return !0;
-      let o = u[r];
-      (y = (F = e.current) == null ? void 0 : F[r]) != null && y.current && (o = I(
-        e.current[r].current
+      let c = f[t];
+      (I = (x = s.current) == null ? void 0 : x[t]) != null && I.current && (c = N(
+        s.current[t].current
       ));
-      const s = n.safeParse({
-        [r]: o
+      const u = n.safeParse({
+        [t]: c
       });
-      if (!s.success) {
-        const g = D(s.error)[r];
-        if (g)
-          return l((V) => ({
-            ...V,
-            [r]: g
+      if (!u.success) {
+        const A = k(u.error)[t];
+        if (A)
+          return v((J) => ({
+            ...J,
+            [t]: A
           })), !1;
       }
-      return l((g) => ({
-        ...g,
-        [r]: void 0
+      return v((A) => ({
+        ...A,
+        [t]: void 0
       })), !0;
     },
-    [l, n, e, v]
-  ), S = i(() => ({
-    onSubmit: (r) => {
-      r.preventDefault(), l({});
-      let o = !1;
-      if (q(() => {
-        o = w();
-      }), !o)
+    [v, n, s, F]
+  ), C = p(() => ({
+    onSubmit: (t) => {
+      if (t.preventDefault(), v({}), a && !a(F()))
         return;
-      console.log(u);
-      const s = new FormData();
-      for (const [F, y] of Object.entries(u))
-        s.append(F, y);
-      P(async () => {
-        await d(s);
+      let c = !1;
+      if (z(() => {
+        c = T();
+      }), !c)
+        return;
+      const u = G(f);
+      w(async () => {
+        await y(u);
       });
     },
-    action: d
+    action: y
   }), [
-    u,
+    f,
+    T,
+    v,
+    y,
     w,
-    l,
-    d,
-    P,
-    d
-  ]), T = i(
-    (r) => (e.current === null && (e.current = {}), e.current[r] = Z(), console.log(r, e.current), {
-      ref: e.current[r],
-      name: r.toString(),
-      onBlur: f ? () => p(r) : void 0,
-      onChange: a ? () => p(r) : void 0
+    y
+  ]), H = p(
+    (t) => (s.current === null && (s.current = {}), s.current[t] = h(), {
+      ref: s.current[t],
+      name: t.toString(),
+      onBlur: i ? () => E(t) : void 0,
+      onChange: d ? () => E(t) : void 0
     }),
-    [e, p, f, a]
+    [s, E, i, d]
   );
-  return {
-    error: (c == null ? void 0 : c.error) ?? null,
-    response: (c == null ? void 0 : c.response) ?? null,
-    fieldErrors: (c == null ? void 0 : c.fieldErrors) ?? R ?? {},
-    isPending: A,
-    getAll: v,
-    validateAll: w,
-    getField: h,
+  return Z(() => {
+    (e != null && e.error || e != null && e.fieldErrors) && (D == null || D((e == null ? void 0 : e.error) ?? null, (e == null ? void 0 : e.fieldErrors) ?? null)), e != null && e.response && (b == null || b(e.response));
+  }, [e]), {
+    error: (e == null ? void 0 : e.error) ?? null,
+    response: (e == null ? void 0 : e.response) ?? null,
+    fieldErrors: (e == null ? void 0 : e.fieldErrors) ?? R ?? {},
+    isPending: P,
+    getAll: F,
+    validateAll: T,
+    getField: _,
     setField: j,
-    validateField: p,
-    connect: S,
-    bindField: T
+    validateField: E,
+    connect: C,
+    bindField: H
   };
-}, J = (t, n) => async (E, b) => {
-  const f = {};
-  for (const [e, A] of Array.from(b.entries()))
-    f[e] = A;
-  const a = t.safeParse(f);
-  if (!a.success)
+}, X = (r, n) => async (o, l) => {
+  const i = K(l), d = r.safeParse(i);
+  if (!d.success)
     return {
-      fieldErrors: D(a.error)
+      fieldErrors: k(d.error)
     };
   try {
     return {
-      response: await n(a.data, E)
+      response: await n(d.data, o)
     };
-  } catch (e) {
-    if (e instanceof z)
-      return { error: e.message };
-    throw e;
+  } catch (a) {
+    if (a instanceof B)
+      return { error: a.message };
+    throw a;
   }
 };
 export {
-  z as FormActionError,
-  J as createFormAction,
-  H as useForm
+  B as FormActionError,
+  X as createFormAction,
+  W as useForm
 };
+//# sourceMappingURL=safe-form.es.js.map

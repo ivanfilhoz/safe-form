@@ -1,0 +1,2 @@
+export declare const parseValueFromInput: (input: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) => string | number | boolean | File | null;
+//# sourceMappingURL=parseValueFromInput.d.ts.map

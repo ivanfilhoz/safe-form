@@ -1,13 +1,30 @@
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import rollupTs from 'rollup-plugin-typescript2'
 import { defineConfig } from 'vite'
+import dts from 'vite-plugin-dts'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    dts({ insertTypesEntry: true, include: ['./src'] }),
+    {
+      ...rollupTs({
+        check: true,
+        tsconfig: './tsconfig.json',
+        tsconfigOverride: {
+          noEmits: true
+        },
+        include: ['./src']
+      }),
+      enforce: 'pre'
+    }
+  ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
   build: {
+    sourcemap: true,
     lib: {
       entry: 'src/index.ts',
       name: 'safe-form',
@@ -19,7 +36,8 @@ export default defineConfig({
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM'
-        }
+        },
+        format: 'es'
       }
     }
   },
