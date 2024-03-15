@@ -1,6 +1,6 @@
 # safe-form
 
-⚡️ End-to-end type-safety from client to server. Inspired by [react-hook-form](https://github.com/react-hook-form/react-hook-form) and [next-safe-action](https://github.com/TheEdoRan/next-safe-action)
+⚡️ End-to-end type-safety from client to server. Inspired by [react-hook-form](https://github.com/react-hook-form/react-hook-form) and [next-safe-action](https://github.com/TheEdoRan/next-safe-action).
 
 ## Features
 

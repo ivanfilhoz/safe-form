@@ -27,6 +27,7 @@
     "canary"
   ],
   "author": "Ivan Filho",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/ivanfilhoz/safe-form/issues"
   },
