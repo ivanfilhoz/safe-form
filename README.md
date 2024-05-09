@@ -1,5 +1,9 @@
 # safe-form
 
+[![NPM Version][npm-image]][npm-url]
+[![Github License][license-image]](LICENSE)
+[![NPM Downloads][downloads-image]][npm-url]
+
 ⚡️ End-to-end type-safety from client to server. Inspired by [react-hook-form](https://github.com/react-hook-form/react-hook-form) and [next-safe-action](https://github.com/TheEdoRan/next-safe-action).
 
 ## Features
@@ -95,4 +99,9 @@ export const HelloForm = () => {
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+[npm-image]: https://img.shields.io/npm/v/safe-form.svg
+[license-image]: https://img.shields.io/github/license/ivanfilhoz/safe-form.svg
+[downloads-image]: https://img.shields.io/npm/dm/safe-form.svg
+[npm-url]: https://npmjs.org/package/safe-form
