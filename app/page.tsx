@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { HelloForm } from './forms/hello'
 
 export default function Home() {
-  const [validateOnBlur, setValidateOnBlur] = useState(false)
+  const [validateOnBlur, setValidateOnBlur] = useState(true)
   const [validateOnChange, setValidateOnChange] = useState(false)
-  const [clientValidation, setClientValidation] = useState(false)
+  const [clientValidation, setClientValidation] = useState(true)
 
   return (
     <main className='flex flex-col items-center'>

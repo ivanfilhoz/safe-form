@@ -21,6 +21,9 @@ export const HelloForm = () => {
       <textarea {...bindField('message')} />
       {fieldErrors.message && <pre>{fieldErrors.message}</pre>}
       <br />
+      <label htmlFor='attachment'>Attachment (optional)</label>
+      <input type='file' {...bindField('attachment')} />
+      {fieldErrors.attachment && <pre>{fieldErrors.attachment}</pre>}
       <button type='submit' disabled={isPending}>
         Submit
       </button>

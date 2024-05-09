@@ -13,6 +13,7 @@
 - ✅ Input validation using [zod](https://github.com/colinhacks/zod)
 - ✅ Server error handling
 - ✅ Automatic input binding
+- ✅ Native file upload support
 
 ## Requirements
 
@@ -35,7 +36,8 @@ import { z } from 'zod'
 
 export const exampleSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
-  message: z.string().min(10, 'Message must be at least 10 characters')
+  message: z.string().min(10, 'Message must be at least 10 characters'),
+  attachment: z.instanceof(File).nullable()
 })
 ```
 
@@ -50,11 +52,11 @@ import { createFormAction, FormActionError } from 'safe-form'
 import { exampleSchema } from './schema'
 
 export const exampleAction = createFormAction(exampleSchema, async (input) => {
-  if (input.name === 'Joe') {
-    throw new FormActionError('Joe is not allowed to send messages.') // Custom errors! 💜
+  if (input.attachment && input.attachment.size >= 1024 * 1024 * 10) {
+    throw new FormActionError('The maximum file size is 10MB.') // Custom errors! 💜
   }
 
-  return `Hello, ${input.name}! Your message is: ${input.message}`
+  return `Hello, ${input.name}! Your message is: ${input.message}.`
 })
 ```
 
@@ -85,6 +87,10 @@ export const HelloForm = () => {
       <label htmlFor='message'>Message</label>
       <textarea {...bindField('message')} />
       {fieldErrors.message && <pre>{fieldErrors.message}</pre>}
+      <br />
+      <label htmlFor='attachment'>Attachment (optional)</label>
+      <input type='file' {...bindField('attachment')} />
+      {fieldErrors.attachment && <pre>{fieldErrors.attachment}</pre>}
       <br />
       <button type='submit' disabled={isPending}>
         Submit

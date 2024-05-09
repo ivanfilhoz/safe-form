@@ -67,6 +67,9 @@ export const HelloForm = ({
       {fieldErrors.message && (
         <div className='text-sm text-red-500'>{fieldErrors.message}</div>
       )}
+      <label htmlFor='attachment'>Attachment</label>
+      <input type='file' {...bindField('attachment')} />
+      {fieldErrors.attachment && <pre>{fieldErrors.attachment}</pre>}
       <label htmlFor='terms'>
         <input {...bindField('terms')} type='checkbox' autoComplete='off' /> I
         accept the terms
