@@ -1,24 +1,24 @@
 import react from '@vitejs/plugin-react'
 import path from 'path'
-import rollupTs from 'rollup-plugin-typescript2'
+// import rollupTs from 'rollup-plugin-typescript2'
 import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
+// import dts from 'vite-plugin-dts'
 
 export default defineConfig({
   plugins: [
-    react(),
-    dts({ insertTypesEntry: true, include: ['./src'] }),
-    {
-      ...rollupTs({
-        check: true,
-        tsconfig: './tsconfig.json',
-        tsconfigOverride: {
-          noEmits: true
-        },
-        include: ['./src']
-      }),
-      enforce: 'pre'
-    }
+    react()
+    // dts({ insertTypesEntry: true, include: ['./src'] }),
+    // {
+    //   ...rollupTs({
+    //     check: true,
+    //     tsconfig: './tsconfig.json',
+    //     tsconfigOverride: {
+    //       noEmits: true
+    //     },
+    //     include: ['./src']
+    //   }),
+    //   enforce: 'pre'
+    // }
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
@@ -42,6 +42,7 @@ export default defineConfig({
     }
   },
   test: {
-    environment: 'jsdom'
+    environment: 'jsdom',
+    setupFiles: './test/setup.ts'
   }
 })

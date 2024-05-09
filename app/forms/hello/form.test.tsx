@@ -1,8 +1,10 @@
-import { describe, test } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, test } from 'vitest'
+import { HelloForm } from './form'
+
 describe('HelloForm', () => {
   test('renders', () => {
-    // Could not test "useFormState" with testing-library/react
-    // render(<HelloForm />)
-    // expect(screen.getByText('Submit')).toBeDefined()
+    render(<HelloForm />)
+    expect(screen.getByText('Submit')).toBeDefined()
   })
 })

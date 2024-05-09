@@ -29,7 +29,7 @@ type UseFormParams<Input extends FormInput, FormResponse> = {
   initialValues?: Partial<Input>
   validateOnBlur?: boolean
   validateOnChange?: boolean
-  onSubmit?: (input: Input) => boolean
+  onSubmit?: (input: Input) => boolean | Promise<boolean>
   onSuccess?: (response: FormResponse) => void
   onError?: (
     error: string | null,
@@ -178,15 +178,16 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
   const connect = useCallback(() => {
     return {
-      onSubmit: (event: SyntheticEvent<HTMLFormElement>) => {
+      onSubmit: async (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault()
 
         // Reset field errors
         setFieldErrors({})
 
         // If there is an onSubmit callback, call it
-        if (onSubmit && !onSubmit(getAll())) {
-          return
+        if (onSubmit) {
+          const shouldSubmit = await onSubmit(getAll())
+          if (!shouldSubmit) return
         }
 
         // Validate all fields before submitting
