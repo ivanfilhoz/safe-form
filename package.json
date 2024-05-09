@@ -1,6 +1,6 @@
 {
   "name": "safe-form",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "⚡️ End-to-end type-safety from client to server.",
   "main": "dist/safe-form.es.js",
   "types": "dist/index.d.ts",
