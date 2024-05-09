@@ -22,10 +22,25 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Check if version has been bumped
+        id: version-check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          NPM_VERSION=$(npm view $(node -p "require('./package.json').name") version)
+          if [ "$VERSION" = "$NPM_VERSION" ]; then
+            echo "Version has not been bumped."
+            echo "::set-output name=bumped::false"
+          else
+            echo "Version has been bumped."
+            echo "::set-output name=bumped::true"
+          fi
+
       - name: Build
+        if: steps.version-check.outputs.bumped == 'true'
         run: npm run build
 
       - name: Publish to npm
+        if: steps.version-check.outputs.bumped == 'true'
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
