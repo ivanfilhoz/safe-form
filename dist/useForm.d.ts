@@ -8,7 +8,7 @@ type UseFormParams<Input extends FormInput, FormResponse> = {
     initialValues?: Partial<Input>;
     validateOnBlur?: boolean;
     validateOnChange?: boolean;
-    onSubmit?: (input: Input) => boolean;
+    onSubmit?: (input: Input) => boolean | Promise<boolean>;
     onSuccess?: (response: FormResponse) => void;
     onError?: (error: string | null, fieldErrors: FormFieldErrors<Input> | null) => void;
 };
