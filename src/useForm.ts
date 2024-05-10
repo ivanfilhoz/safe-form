@@ -15,7 +15,7 @@ import {
   useTransition
 } from 'react'
 import { flushSync, useFormState } from 'react-dom'
-import { z } from 'zod'
+import type { Schema } from 'zod'
 import { parseValueFromInput } from './helpers/parseValueFromInput'
 import { parseZodError } from './helpers/parseZodError'
 import { FormAction, FormFieldErrors, FormInput, FormState } from './types'
@@ -24,7 +24,7 @@ type BindableField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 
 type UseFormParams<Input extends FormInput, FormResponse> = {
   action: FormAction<Input, FormResponse>
-  schema?: z.Schema<Input>
+  schema?: Schema<Input>
   initialState?: FormState<Input, FormResponse> | null
   initialValues?: Partial<Input>
   validateOnBlur?: boolean

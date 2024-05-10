@@ -1,11 +1,11 @@
-import { z } from 'zod'
+import type { Schema } from 'zod'
 import { FormActionError } from './FormActionError'
 import { parseZodError } from './helpers/parseZodError'
 import { parseFormData } from './helpers/serializer'
 import { FormAction, FormInput, FormState } from './types'
 
 export const createFormAction = <Input extends FormInput, FormResponse>(
-  schema: z.Schema<Input>,
+  schema: Schema<Input>,
   handler: (
     validatedInput: Input,
     initialState?: FormState<Input, FormResponse> | null

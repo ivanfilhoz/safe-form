@@ -1,8 +1,8 @@
-import { z } from 'zod'
+import type { ZodError } from 'zod'
 import { FormFieldErrors, FormInput } from '..'
 
 export const parseZodError = <Input extends FormInput>(
-  error: z.ZodError
+  error: ZodError
 ): FormFieldErrors<Input> => {
   return error.flatten().fieldErrors as FormFieldErrors<Input>
 }
