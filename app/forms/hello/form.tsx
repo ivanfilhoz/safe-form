@@ -23,6 +23,7 @@ export const HelloForm = ({
     response,
     isPending,
     isDirty,
+    getValues,
     getField,
     setField,
     validateField
@@ -49,7 +50,6 @@ export const HelloForm = ({
 
   return (
     <form {...connect()} className='flex flex-col w-[320px] gap-1 mt-4'>
-      isDirty: {isDirty ? 'Yes' : 'No'}
       <label htmlFor='name'>Name</label>
       <input {...bindField('name')} autoComplete='off' />
       {fieldErrors.name && (
@@ -84,6 +84,18 @@ export const HelloForm = ({
       </button>
       {error && <div className='text-sm text-red-500'>{error}</div>}
       {response && <div>{response}</div>}
+      <br />
+      <pre>
+        {JSON.stringify(
+          {
+            isPending,
+            isDirty,
+            values: getValues()
+          },
+          null,
+          2
+        )}
+      </pre>
     </form>
   )
 }

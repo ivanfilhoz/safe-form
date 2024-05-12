@@ -3,6 +3,7 @@
 import { createFormData } from '@/helpers/serializer'
 import {
   FormHTMLAttributes,
+  HTMLAttributes,
   InputHTMLAttributes,
   RefAttributes,
   RefObject,
@@ -14,7 +15,7 @@ import {
   useState,
   useTransition
 } from 'react'
-import { flushSync, useFormState } from 'react-dom'
+import { useFormState } from 'react-dom'
 import type { Schema } from 'zod'
 import { parseValueFromInput } from './helpers/parseValueFromInput'
 import { parseZodError } from './helpers/parseZodError'
@@ -43,18 +44,17 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   fieldErrors: FormFieldErrors<Input>
   isPending: boolean
   isDirty: boolean
-  values: Input
+  getValues: () => Input
   setValues: (values: Input) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
-  getAll: () => Input
-  validateAll: () => boolean
+  validate: () => boolean
   getField: <Field extends keyof Input>(name: Field) => Input[Field]
   setField: <Field extends keyof Input>(
     name: Field,
     value: Input[Field]
   ) => void
   validateField: <Field extends keyof Input>(name: Field) => boolean
-  bindField: (name: keyof Input) => any // TODO: Fix this type
+  bindField: (name: keyof Input) => HTMLAttributes<BindableField>
 }
 
 export const useForm = <Input extends FormInput, FormResponse>({
@@ -75,43 +75,22 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const [isDirty, setIsDirty] = useState(false)
   const [formState, formAction] = useFormState(action, initialState ?? null)
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
-  const [values, setValues] = useState<Input>(
-    (initialValues as Input) ?? ({} as Input)
-  )
+  const values = useRef<Input>(initialValues as Input)
 
-  const getAll = useCallback(() => {
-    // If there are no bound fields, just return values
-    if (!inputRef.current) {
-      return values
-    }
+  const getValues = useCallback(() => {
+    return values.current
+  }, [])
 
-    // Otherwise, get the values from the bound fields
-    let _values: Record<string, unknown> = values
-    for (const [field, ref] of Object.entries(inputRef.current)) {
-      if (!ref?.current) {
-        continue
-      }
+  const setValues = useCallback((newValues: Input) => {
+    values.current = newValues
+  }, [])
 
-      _values[field] = parseValueFromInput(ref.current)
-    }
-
-    setValues({
-      ...values,
-      ...(_values as Input)
-    })
-
-    return _values as Input
-  }, [inputRef, values])
-
-  const validateAll = useCallback(() => {
-    // Get all the values before validating
-    const input = getAll()
-
+  const validate = useCallback(() => {
     // If there is no schema, skip validation
     if (!schema) return true
 
     // Validate all fields
-    const validation = schema.safeParse(input)
+    const validation = schema.safeParse(values.current)
 
     if (!validation.success) {
       setFieldErrors(parseZodError(validation.error))
@@ -121,43 +100,35 @@ export const useForm = <Input extends FormInput, FormResponse>({
     // Reset field errors if validation is successful
     setFieldErrors({})
     return true
-  }, [setFieldErrors, schema, inputRef, getAll])
+  }, [setFieldErrors, schema, inputRef])
 
   const getField = useCallback(
     <Field extends keyof Input>(name: Field) => {
-      return values[name]
+      return values.current[name]
     },
-    [values]
+    [values.current]
   )
 
   const setField = useCallback(
     <Field extends keyof Input>(name: keyof Input, value: Input[Field]) => {
-      if (value !== values[name]) {
+      // Set the dirty state if the value has changed
+      if (value !== initialValues?.[name]) {
         setIsDirty(true)
       }
 
-      setValues((values) => ({
-        ...values,
+      values.current = {
+        ...values.current,
         [name]: value
-      }))
+      }
+
+      validateField(name)
     },
-    [inputRef, setValues]
+    [inputRef]
   )
 
   const validateField = useCallback(
     <Field extends keyof Input>(name: Field) => {
-      // If it's a bound field, get the value from the ref
-      let value = values[name]
-      if (inputRef.current?.[name]?.current) {
-        value = parseValueFromInput(
-          inputRef.current[name]!.current!
-        ) as Input[Field]
-      }
-
-      // Set the field as dirty if the value has changed
-      if (value !== initialValues?.[name]) {
-        setIsDirty(true)
-      }
+      const value = values.current[name]
 
       // If there is no schema, skip validation
       if (!schema) return true
@@ -175,6 +146,8 @@ export const useForm = <Input extends FormInput, FormResponse>({
             ...fieldErrors,
             [name]: errors
           }))
+
+          // The field is invalid
           return false
         }
       }
@@ -184,9 +157,40 @@ export const useForm = <Input extends FormInput, FormResponse>({
         ...fieldErrors,
         [name]: undefined
       }))
+
+      // The field is valid
       return true
     },
-    [setFieldErrors, schema, inputRef, getAll]
+    [setFieldErrors, schema, inputRef, values.current]
+  )
+
+  const bindField = useCallback(
+    (name: keyof Input) => {
+      if (inputRef.current === null) {
+        inputRef.current = {}
+      }
+
+      inputRef.current[name] = createRef()
+
+      const mutate = (name: keyof Input) => {
+        const ref = inputRef.current?.[name]
+        if (!ref?.current) return
+
+        const newValue = parseValueFromInput(ref.current) as Input[keyof Input]
+
+        setField(name, newValue)
+      }
+
+      return {
+        ref: inputRef.current[name],
+        name: name.toString(),
+        defaultValue: initialValues?.[name] ?? '',
+        onBlur: validateOnBlur ? () => mutate(name) : undefined,
+        onChange: validateOnChange ? () => mutate(name) : undefined
+      } satisfies InputHTMLAttributes<HTMLInputElement> &
+        RefAttributes<BindableField>
+    },
+    [inputRef, setField, validateOnBlur, validateOnChange]
   )
 
   const connect = useCallback(() => {
@@ -199,21 +203,17 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
         // If there is an onSubmit callback, call it
         if (onSubmit) {
-          const shouldSubmit = await onSubmit(getAll())
+          const shouldSubmit = await onSubmit(values.current)
           if (!shouldSubmit) return
         }
 
         // Validate all fields before submitting
-        let validation = false
-        flushSync(() => {
-          validation = validateAll()
-        })
-        if (!validation) {
+        if (!validate()) {
           return
         }
 
         // Create a FormData object from the values
-        const formData = createFormData(values)
+        const formData = createFormData(values.current)
 
         // Call the server action
         startTransition(async () => {
@@ -223,33 +223,13 @@ export const useForm = <Input extends FormInput, FormResponse>({
       action: formAction
     } satisfies Pick<FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'action'>
   }, [
-    values,
-    validateAll,
+    values.current,
+    validate,
     setFieldErrors,
     formAction,
     startTransition,
     formAction
   ])
-
-  const bindField = useCallback(
-    (name: keyof Input) => {
-      if (inputRef.current === null) {
-        inputRef.current = {}
-      }
-
-      inputRef.current[name] = createRef()
-
-      return {
-        ref: inputRef.current[name],
-        name: name.toString(),
-        defaultValue: values[name],
-        onBlur: validateOnBlur ? () => validateField(name) : undefined,
-        onChange: validateOnChange ? () => validateField(name) : undefined
-      } satisfies InputHTMLAttributes<HTMLInputElement> &
-        RefAttributes<BindableField>
-    },
-    [inputRef, validateField, validateOnBlur, validateOnChange]
-  )
 
   useEffect(() => {
     if (formState?.error || formState?.fieldErrors) {
@@ -268,14 +248,13 @@ export const useForm = <Input extends FormInput, FormResponse>({
       formState?.fieldErrors ?? fieldErrors ?? ({} as FormFieldErrors<Input>),
     isPending,
     isDirty,
-    values,
+    getValues,
     setValues,
-    getAll,
-    validateAll,
+    connect,
+    validate,
     getField,
     setField,
     validateField,
-    connect,
     bindField
   }
 }
