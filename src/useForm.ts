@@ -82,7 +82,10 @@ export const useForm = <Input extends FormInput, FormResponse>({
   }, [])
 
   const setValues = useCallback((newValues: Input) => {
-    values.current = newValues
+    values.current = {
+      ...values.current,
+      newValues
+    }
   }, [])
 
   const validate = useCallback(() => {
