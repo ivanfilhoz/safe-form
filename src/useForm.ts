@@ -229,6 +229,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       return {
         ref: inputRef.current[name],
         name: name.toString(),
+        defaultValue: values[name],
         onBlur: validateOnBlur ? () => validateField(name) : undefined,
         onChange: validateOnChange ? () => validateField(name) : undefined
       } satisfies InputHTMLAttributes<HTMLInputElement> &

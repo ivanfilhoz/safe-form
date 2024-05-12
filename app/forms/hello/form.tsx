@@ -29,7 +29,7 @@ export const HelloForm = ({
     action: helloAction,
     schema: clientValidation ? helloSchema : undefined,
     initialValues: {
-      name: '',
+      name: 'Ivan Filho',
       message: ''
     },
     validateOnBlur: validateOnBlur,
