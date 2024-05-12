@@ -24,6 +24,7 @@ export const HelloForm = ({
     isPending,
     isDirty,
     getValues,
+    setValues,
     getField,
     setField,
     validateField
@@ -32,7 +33,8 @@ export const HelloForm = ({
     schema: clientValidation ? helloSchema : undefined,
     initialValues: {
       name: 'Ivan Filho',
-      message: ''
+      message: '',
+      contacts: []
     },
     validateOnBlur: validateOnBlur,
     validateOnChange: validateOnChange,
@@ -53,12 +55,12 @@ export const HelloForm = ({
       <label htmlFor='name'>Name</label>
       <input {...bindField('name')} autoComplete='off' />
       {fieldErrors.name && (
-        <div className='text-sm text-red-500'>{fieldErrors.name}</div>
+        <div className='text-sm text-red-500'>{fieldErrors.name.first}</div>
       )}
       <label htmlFor='age'>Age</label>
       <input {...bindField('age')} type='number' autoComplete='off' />
       {fieldErrors.age && (
-        <div className='text-sm text-red-500'>{fieldErrors.age}</div>
+        <div className='text-sm text-red-500'>{fieldErrors.age.first}</div>
       )}
       <label htmlFor='message'>Message</label>
       <input
@@ -67,18 +69,75 @@ export const HelloForm = ({
         onBlur={() => validateField('message')}
       />
       {fieldErrors.message && (
-        <div className='text-sm text-red-500'>{fieldErrors.message}</div>
+        <div className='text-sm text-red-500'>{fieldErrors.message.first}</div>
       )}
       <label htmlFor='attachment'>Attachment</label>
       <input type='file' {...bindField('attachment')} />
-      {fieldErrors.attachment && <pre>{fieldErrors.attachment}</pre>}
+      {fieldErrors.attachment && <pre>{fieldErrors.attachment.first}</pre>}
       <label htmlFor='terms'>
         <input {...bindField('terms')} type='checkbox' autoComplete='off' /> I
         accept the terms
       </label>
       {fieldErrors.terms && (
-        <div className='text-sm text-red-500'>{fieldErrors.terms}</div>
+        <div className='text-sm text-red-500'>{fieldErrors.terms.first}</div>
       )}
+      <label htmlFor='contacts'>Contacts</label>
+      {getValues().contacts.map((contact, index) => {
+        const setSubfield = (subfield: 'name' | 'email', value: string) =>
+          setValues({
+            ...getValues(),
+            contacts: getValues().contacts.map((c, i) =>
+              i === index ? { ...c, [subfield]: value } : c
+            )
+          })
+
+        return (
+          <div key={index} className='flex flex-col gap-1'>
+            <label htmlFor='name'>Name</label>
+            <input
+              defaultValue={contact.name}
+              onBlur={(e) => setSubfield('name', e.target.value)}
+            />
+            {fieldErrors.contacts && (
+              <div className='text-sm text-red-500'>
+                {fieldErrors.contacts.firstByPath([index, 'name'])}
+              </div>
+            )}
+            <label htmlFor='email'>Email</label>
+            <input
+              defaultValue={contact.email}
+              onBlur={(e) => setSubfield('email', e.target.value)}
+            />
+            {fieldErrors.contacts && (
+              <div className='text-sm text-red-500'>
+                {fieldErrors.contacts.firstByPath([index, 'email'])}
+              </div>
+            )}
+            <button
+              onClick={() =>
+                setValues({
+                  ...getValues(),
+                  contacts: getValues().contacts.filter((_, i) => i !== index)
+                })
+              }
+            >
+              Remove
+            </button>
+          </div>
+        )
+      })}
+      <button
+        onClick={(event) => {
+          event.preventDefault()
+          setField(
+            'contacts',
+            [...(getValues().contacts || []), { name: '', email: '' }],
+            false
+          )
+        }}
+      >
+        Add contact
+      </button>
       <button type='submit' disabled={isPending}>
         Submit
       </button>
@@ -90,7 +149,8 @@ export const HelloForm = ({
           {
             isPending,
             isDirty,
-            values: getValues()
+            values: getValues(),
+            fieldErrors
           },
           null,
           2

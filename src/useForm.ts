@@ -51,7 +51,8 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   getField: <Field extends keyof Input>(name: Field) => Input[Field]
   setField: <Field extends keyof Input>(
     name: Field,
-    value: Input[Field]
+    value: Input[Field],
+    validate?: boolean
   ) => void
   validateField: <Field extends keyof Input>(name: Field) => boolean
   bindField: (name: keyof Input) => HTMLAttributes<BindableField>
@@ -76,17 +77,29 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const [formState, formAction] = useFormState(action, initialState ?? null)
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
   const values = useRef<Input>(initialValues as Input)
+  const [flushToggle, setFlushToggle] = useState(false)
+
+  const flush = useCallback(() => {
+    setFlushToggle((toggle) => !toggle)
+  }, [])
 
   const getValues = useCallback(() => {
     return values.current
   }, [])
 
-  const setValues = useCallback((newValues: Partial<Input>) => {
-    values.current = {
-      ...values.current,
-      ...newValues
-    }
-  }, [])
+  const setValues = useCallback(
+    (newValues: Partial<Input>, rerender: boolean = true) => {
+      values.current = {
+        ...values.current,
+        ...newValues
+      }
+
+      if (rerender) {
+        flush()
+      }
+    },
+    [flush]
+  )
 
   const validate = useCallback(() => {
     // If there is no schema, skip validation
@@ -113,7 +126,11 @@ export const useForm = <Input extends FormInput, FormResponse>({
   )
 
   const setField = useCallback(
-    <Field extends keyof Input>(name: keyof Input, value: Input[Field]) => {
+    <Field extends keyof Input>(
+      name: keyof Input,
+      value: Input[Field],
+      validate: boolean = true
+    ) => {
       // Set the dirty state if the value has changed
       if (value !== values.current[name]) {
         setIsDirty(true)
@@ -124,9 +141,14 @@ export const useForm = <Input extends FormInput, FormResponse>({
         [name]: value
       }
 
-      validateField(name)
+      // Either validate or just flush the state
+      if (validate) {
+        validateField(name)
+      } else {
+        flush()
+      }
     },
-    [inputRef]
+    [inputRef, flush]
   )
 
   const validateField = useCallback(

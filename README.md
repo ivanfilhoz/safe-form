@@ -82,15 +82,15 @@ export const HelloForm = () => {
     <form {...connect()}>
       <label htmlFor='name'>Name</label>
       <input {...bindField('name')} />
-      {fieldErrors.name && <pre>{fieldErrors.name}</pre>}
+      {fieldErrors.name && <pre>{fieldErrors.name.first}</pre>}
       <br />
       <label htmlFor='message'>Message</label>
       <textarea {...bindField('message')} />
-      {fieldErrors.message && <pre>{fieldErrors.message}</pre>}
+      {fieldErrors.message && <pre>{fieldErrors.message.first}</pre>}
       <br />
       <label htmlFor='attachment'>Attachment (optional)</label>
       <input type='file' {...bindField('attachment')} />
-      {fieldErrors.attachment && <pre>{fieldErrors.attachment}</pre>}
+      {fieldErrors.attachment && <pre>{fieldErrors.attachment.first}</pre>}
       <br />
       <button type='submit' disabled={isPending}>
         Submit
