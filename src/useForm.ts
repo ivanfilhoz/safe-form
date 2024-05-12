@@ -45,7 +45,7 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   isPending: boolean
   isDirty: boolean
   getValues: () => Input
-  setValues: (values: Input) => void
+  setValues: (values: Partial<Input>) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
   validate: () => boolean
   getField: <Field extends keyof Input>(name: Field) => Input[Field]
@@ -81,7 +81,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     return values.current
   }, [])
 
-  const setValues = useCallback((newValues: Input) => {
+  const setValues = useCallback((newValues: Partial<Input>) => {
     values.current = {
       ...values.current,
       newValues
