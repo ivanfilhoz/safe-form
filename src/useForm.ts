@@ -84,7 +84,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const setValues = useCallback((newValues: Partial<Input>) => {
     values.current = {
       ...values.current,
-      newValues
+      ...newValues
     }
   }, [])
 
