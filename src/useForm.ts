@@ -42,6 +42,9 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   response: FormResponse | null
   fieldErrors: FormFieldErrors<Input>
   isPending: boolean
+  isDirty: boolean
+  values: Input
+  setValues: (values: Input) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
   getAll: () => Input
   validateAll: () => boolean
@@ -69,6 +72,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     { [field in keyof Input]?: RefObject<BindableField> } | null
   >(null)
   const [isPending, startTransition] = useTransition()
+  const [isDirty, setIsDirty] = useState(false)
   const [formState, formAction] = useFormState(action, initialState ?? null)
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
   const [values, setValues] = useState<Input>(
@@ -128,6 +132,10 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
   const setField = useCallback(
     <Field extends keyof Input>(name: keyof Input, value: Input[Field]) => {
+      if (value !== values[name]) {
+        setIsDirty(true)
+      }
+
       setValues((values) => ({
         ...values,
         [name]: value
@@ -138,9 +146,6 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
   const validateField = useCallback(
     <Field extends keyof Input>(name: Field) => {
-      // If there is no schema, skip validation
-      if (!schema) return true
-
       // If it's a bound field, get the value from the ref
       let value = values[name]
       if (inputRef.current?.[name]?.current) {
@@ -149,11 +154,19 @@ export const useForm = <Input extends FormInput, FormResponse>({
         ) as Input[Field]
       }
 
+      // Set the field as dirty if the value has changed
+      if (value !== initialValues?.[name]) {
+        setIsDirty(true)
+      }
+
+      // If there is no schema, skip validation
+      if (!schema) return true
+
+      // Validate a single field
       const validation = schema.safeParse({
         [name]: value
       })
 
-      // Validate a single field
       if (!validation.success) {
         const errors = parseZodError<Input>(validation.error)[name]
 
@@ -243,6 +256,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       onError?.(formState?.error ?? null, formState?.fieldErrors ?? null)
     }
     if (formState?.response) {
+      setIsDirty(false)
       onSuccess?.(formState.response)
     }
   }, [formState])
@@ -253,6 +267,9 @@ export const useForm = <Input extends FormInput, FormResponse>({
     fieldErrors:
       formState?.fieldErrors ?? fieldErrors ?? ({} as FormFieldErrors<Input>),
     isPending,
+    isDirty,
+    values,
+    setValues,
     getAll,
     validateAll,
     getField,

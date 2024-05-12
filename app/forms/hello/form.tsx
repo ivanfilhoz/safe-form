@@ -22,6 +22,7 @@ export const HelloForm = ({
     fieldErrors,
     response,
     isPending,
+    isDirty,
     getField,
     setField,
     validateField
@@ -48,6 +49,7 @@ export const HelloForm = ({
 
   return (
     <form {...connect()} className='flex flex-col w-[320px] gap-1 mt-4'>
+      isDirty: {isDirty ? 'Yes' : 'No'}
       <label htmlFor='name'>Name</label>
       <input {...bindField('name')} autoComplete='off' />
       {fieldErrors.name && (
