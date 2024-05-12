@@ -115,7 +115,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const setField = useCallback(
     <Field extends keyof Input>(name: keyof Input, value: Input[Field]) => {
       // Set the dirty state if the value has changed
-      if (value !== initialValues?.[name]) {
+      if (value !== values.current[name]) {
         setIsDirty(true)
       }
 
