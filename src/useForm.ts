@@ -92,6 +92,15 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
   const setValues = useCallback(
     (newValues: Partial<Input>, rerender: boolean = true) => {
+      // Set the dirty state if the values have changed
+      if (
+        Object.keys(newValues).some(
+          (key) => newValues[key] !== values.current[key]
+        )
+      ) {
+        setIsDirty(true)
+      }
+
       values.current = {
         ...values.current,
         ...newValues
