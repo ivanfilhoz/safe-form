@@ -30,7 +30,7 @@ type UseFormParams<Input extends FormInput, FormResponse> = {
   initialValues?: Partial<Input>
   validateOnBlur?: boolean
   validateOnChange?: boolean
-  onSubmit?: (input: Partial<Input>) => boolean | Promise<boolean>
+  onSubmit?: (input: Input) => boolean | Promise<boolean>
   onSuccess?: (response: FormResponse) => void
   onError?: (
     error: string | null,
@@ -236,7 +236,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
         const newValue = parseValueFromInput(ref.current) as Input[keyof Input]
 
-        setField(name, newValue)
+        setField(name, newValue, validate)
       }
 
       return {
@@ -266,9 +266,14 @@ export const useForm = <Input extends FormInput, FormResponse>({
           return
         }
 
+        // Parse the form values
+        const input = schema
+          ? schema.parse(values.current)
+          : (values.current as Input)
+
         // If there is an onSubmit callback, call it
         if (onSubmit) {
-          const shouldSubmit = await onSubmit(values.current)
+          const shouldSubmit = await onSubmit(input)
           if (!shouldSubmit) return
         }
 
@@ -276,7 +281,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
         if (!action) return
 
         // Create a FormData object from the values
-        const formData = createFormData(values.current)
+        const formData = createFormData(input)
 
         // Call the server action
         startTransition(async () => {
@@ -285,7 +290,15 @@ export const useForm = <Input extends FormInput, FormResponse>({
       },
       action: formAction
     } satisfies Pick<FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'action'>
-  }, [validate, setFieldErrors, startTransition, formAction, action, onSubmit])
+  }, [
+    validate,
+    setFieldErrors,
+    startTransition,
+    formAction,
+    action,
+    onSubmit,
+    schema
+  ])
 
   useEffect(() => {
     if (formState?.error || formState?.fieldErrors) {
