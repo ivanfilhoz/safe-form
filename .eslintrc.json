@@ -1,0 +1,7 @@
+{
+  "extends": "next",
+  "rules": {
+    "no-console": "error"
+  },
+  "ignorePatterns": ["!**/*", ".next/**/*", "app/**/*", "dist/**/*", "node_modules/**/*"]
+}

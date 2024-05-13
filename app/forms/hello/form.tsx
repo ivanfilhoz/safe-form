@@ -50,6 +50,8 @@ export const HelloForm = ({
     }
   })
 
+  console.log({ fieldErrors })
+
   return (
     <form {...connect()} className='flex flex-col w-[320px] gap-1 mt-4'>
       <label htmlFor='name'>Name</label>

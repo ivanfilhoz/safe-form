@@ -18,7 +18,6 @@ export const parseZodError = <Input extends FormInput>(
         all: fieldError,
         rawErrors: error.errors,
         firstByPath: (path: (string | number)[]) => {
-          console.log(path, key, error.errors)
           return error.errors.find((e) => shallowEqual(e.path, [key, ...path]))
             ?.message
         }
