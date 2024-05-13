@@ -97,6 +97,16 @@ export const useForm = <Input extends FormInput, FormResponse>({
         ...newValues
       }
 
+      // If there are bound fields, update their values
+      if (inputRef.current) {
+        for (const name in newValues) {
+          const ref = inputRef.current?.[name]
+          if (ref?.current) {
+            ref.current.value = newValues[name] as string
+          }
+        }
+      }
+
       if (rerender) {
         flush()
       }
@@ -177,6 +187,12 @@ export const useForm = <Input extends FormInput, FormResponse>({
       values.current = {
         ...values.current,
         [name]: value
+      }
+
+      // If there is a bound field, update its value
+      const ref = inputRef.current?.[name]
+      if (ref?.current) {
+        ref.current.value = value as string
       }
 
       // Either validate or just flush the state

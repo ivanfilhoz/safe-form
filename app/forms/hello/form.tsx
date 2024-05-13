@@ -56,10 +56,19 @@ export const HelloForm = ({
   return (
     <form {...connect()} className='flex flex-col w-[320px] gap-1 mt-4'>
       <label htmlFor='name'>Name</label>
-      <input {...bindField('name')} autoComplete='off' />
+      <input {...bindField('name')} id='name' autoComplete='off' />
       {fieldErrors.name && (
         <div className='text-sm text-red-500'>{fieldErrors.name.first}</div>
       )}
+      <button
+        data-testid='button-foo'
+        onClick={(event) => {
+          event.preventDefault()
+          setField('name', 'foo')
+        }}
+      >
+        Set name to foo
+      </button>
       <label htmlFor='age'>Age</label>
       <input {...bindField('age')} type='number' autoComplete='off' />
       {fieldErrors.age && (

@@ -7,4 +7,11 @@ describe('HelloForm', () => {
     render(<HelloForm />)
     expect(screen.getByText('Submit')).toBeDefined()
   })
+
+  test('when setField is called, update the bound field', () => {
+    const button = screen.getByTestId('button-foo')
+    button.click()
+    const input = screen.getByLabelText('Name') as HTMLInputElement
+    expect(input.value).toBe('foo')
+  })
 })
