@@ -1,15 +1,16 @@
 'use client'
 
 import { useForm } from '@'
-import { exampleAction } from './action'
-import { exampleSchema } from './schema'
+import { actionlessSchema } from './schema'
 
-export const ExampleForm = () => {
-  const { connect, bindField, isPending, error, fieldErrors, response } =
-    useForm({
-      action: exampleAction,
-      schema: exampleSchema
-    })
+export const ActionlessForm = () => {
+  const { connect, bindField, isPending, fieldErrors } = useForm({
+    schema: actionlessSchema,
+    onSubmit: async (values) => {
+      console.log('Submitting form with values:', values)
+      return true
+    }
+  })
 
   return (
     <form {...connect()}>
@@ -28,8 +29,6 @@ export const ExampleForm = () => {
         Submit
       </button>
       <br />
-      {error && <pre>{error}</pre>}
-      {response && <div>{response}</div>}
     </form>
   )
 }

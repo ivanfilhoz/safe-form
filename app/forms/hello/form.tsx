@@ -51,6 +51,7 @@ export const HelloForm = ({
   })
 
   console.log({ fieldErrors })
+  const contacts = getField('contacts') || []
 
   return (
     <form {...connect()} className='flex flex-col w-[320px] gap-1 mt-4'>
@@ -84,11 +85,11 @@ export const HelloForm = ({
         <div className='text-sm text-red-500'>{fieldErrors.terms.first}</div>
       )}
       <label htmlFor='contacts'>Contacts</label>
-      {getValues().contacts.map((contact, index) => {
+      {contacts.map((contact, index) => {
         const setSubfield = (subfield: 'name' | 'email', value: string) =>
           setValues({
             ...getValues(),
-            contacts: getValues().contacts.map((c, i) =>
+            contacts: contacts.map((c, i) =>
               i === index ? { ...c, [subfield]: value } : c
             )
           })
@@ -119,7 +120,7 @@ export const HelloForm = ({
               onClick={() =>
                 setValues({
                   ...getValues(),
-                  contacts: getValues().contacts.filter((_, i) => i !== index)
+                  contacts: contacts.filter((_, i) => i !== index)
                 })
               }
             >
@@ -131,11 +132,7 @@ export const HelloForm = ({
       <button
         onClick={(event) => {
           event.preventDefault()
-          setField(
-            'contacts',
-            [...(getValues().contacts || []), { name: '', email: '' }],
-            false
-          )
+          setField('contacts', [...contacts, { name: '', email: '' }], false)
         }}
       >
         Add contact

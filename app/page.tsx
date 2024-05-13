@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ActionlessForm } from './forms/actionless/form'
 import { HelloForm } from './forms/hello'
 
 export default function Home() {
@@ -44,6 +45,8 @@ export default function Home() {
         validateOnChange={validateOnChange}
         clientValidation={clientValidation}
       />
+      <hr className='my-4' />
+      <ActionlessForm />
     </main>
   )
 }

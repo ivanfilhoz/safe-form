@@ -24,13 +24,13 @@ import { FormAction, FormFieldErrors, FormInput, FormState } from './types'
 type BindableField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 
 type UseFormParams<Input extends FormInput, FormResponse> = {
-  action: FormAction<Input, FormResponse>
+  action?: FormAction<Input, FormResponse>
   schema?: Schema<Input>
   initialState?: FormState<Input, FormResponse> | null
   initialValues?: Partial<Input>
   validateOnBlur?: boolean
   validateOnChange?: boolean
-  onSubmit?: (input: Input) => boolean | Promise<boolean>
+  onSubmit?: (input: Partial<Input>) => boolean | Promise<boolean>
   onSuccess?: (response: FormResponse) => void
   onError?: (
     error: string | null,
@@ -44,11 +44,11 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   fieldErrors: FormFieldErrors<Input>
   isPending: boolean
   isDirty: boolean
-  getValues: () => Input
+  getValues: () => Partial<Input>
   setValues: (values: Partial<Input>) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
   validate: () => boolean
-  getField: <Field extends keyof Input>(name: Field) => Input[Field]
+  getField: <Field extends keyof Input>(name: Field) => Input[Field] | undefined
   setField: <Field extends keyof Input>(
     name: Field,
     value: Input[Field],
@@ -62,7 +62,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
   action,
   schema,
   initialState,
-  initialValues,
+  initialValues = {},
   validateOnBlur,
   validateOnChange,
   onSubmit,
@@ -74,9 +74,12 @@ export const useForm = <Input extends FormInput, FormResponse>({
   >(null)
   const [isPending, startTransition] = useTransition()
   const [isDirty, setIsDirty] = useState(false)
-  const [formState, formAction] = useFormState(action, initialState ?? null)
+  const [formState, formAction] = useFormState(
+    action ?? (() => null),
+    initialState ?? null
+  )
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
-  const values = useRef<Input>(initialValues as Input)
+  const values = useRef<Partial<Input>>(initialValues)
   const [flushToggle, setFlushToggle] = useState(false)
 
   const flush = useCallback(() => {
@@ -116,40 +119,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     // Reset field errors if validation is successful
     setFieldErrors({})
     return true
-  }, [setFieldErrors, schema, inputRef])
-
-  const getField = useCallback(
-    <Field extends keyof Input>(name: Field) => {
-      return values.current[name]
-    },
-    [values.current]
-  )
-
-  const setField = useCallback(
-    <Field extends keyof Input>(
-      name: keyof Input,
-      value: Input[Field],
-      validate: boolean = true
-    ) => {
-      // Set the dirty state if the value has changed
-      if (value !== values.current[name]) {
-        setIsDirty(true)
-      }
-
-      values.current = {
-        ...values.current,
-        [name]: value
-      }
-
-      // Either validate or just flush the state
-      if (validate) {
-        validateField(name)
-      } else {
-        flush()
-      }
-    },
-    [inputRef, flush]
-  )
+  }, [setFieldErrors, schema])
 
   const validateField = useCallback(
     <Field extends keyof Input>(name: Field) => {
@@ -186,7 +156,37 @@ export const useForm = <Input extends FormInput, FormResponse>({
       // The field is valid
       return true
     },
-    [setFieldErrors, schema, inputRef, values.current]
+    [setFieldErrors, schema]
+  )
+
+  const getField = useCallback(<Field extends keyof Input>(name: Field) => {
+    return values.current[name]
+  }, [])
+
+  const setField = useCallback(
+    <Field extends keyof Input>(
+      name: keyof Input,
+      value: Input[Field],
+      validate: boolean = true
+    ) => {
+      // Set the dirty state if the value has changed
+      if (value !== values.current[name]) {
+        setIsDirty(true)
+      }
+
+      values.current = {
+        ...values.current,
+        [name]: value
+      }
+
+      // Either validate or just flush the state
+      if (validate) {
+        validateField(name)
+      } else {
+        flush()
+      }
+    },
+    [flush, validateField]
   )
 
   const bindField = useCallback(
@@ -197,7 +197,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
       inputRef.current[name] = createRef()
 
-      const mutate = (name: keyof Input) => {
+      const mutate = (name: keyof Input, validate: boolean = true) => {
         const ref = inputRef.current?.[name]
         if (!ref?.current) return
 
@@ -210,12 +210,14 @@ export const useForm = <Input extends FormInput, FormResponse>({
         ref: inputRef.current[name],
         name: name.toString(),
         defaultValue: initialValues?.[name] ?? '',
-        onBlur: validateOnBlur ? () => mutate(name) : undefined,
+        onBlur: () => {
+          mutate(name, validateOnBlur)
+        },
         onChange: validateOnChange ? () => mutate(name) : undefined
       } satisfies InputHTMLAttributes<HTMLInputElement> &
         RefAttributes<BindableField>
     },
-    [inputRef, setField, validateOnBlur, validateOnChange]
+    [inputRef, setField, validateOnBlur, validateOnChange, initialValues]
   )
 
   const connect = useCallback(() => {
@@ -226,16 +228,19 @@ export const useForm = <Input extends FormInput, FormResponse>({
         // Reset field errors
         setFieldErrors({})
 
+        // Validate all fields before submitting
+        if (!validate()) {
+          return
+        }
+
         // If there is an onSubmit callback, call it
         if (onSubmit) {
           const shouldSubmit = await onSubmit(values.current)
           if (!shouldSubmit) return
         }
 
-        // Validate all fields before submitting
-        if (!validate()) {
-          return
-        }
+        // If there is no action, skip the submission
+        if (!action) return
 
         // Create a FormData object from the values
         const formData = createFormData(values.current)
@@ -247,14 +252,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       },
       action: formAction
     } satisfies Pick<FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'action'>
-  }, [
-    values.current,
-    validate,
-    setFieldErrors,
-    formAction,
-    startTransition,
-    formAction
-  ])
+  }, [validate, setFieldErrors, startTransition, formAction, action, onSubmit])
 
   useEffect(() => {
     if (formState?.error || formState?.fieldErrors) {
@@ -264,6 +262,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       setIsDirty(false)
       onSuccess?.(formState.response)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formState])
 
   return {
