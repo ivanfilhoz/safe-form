@@ -45,6 +45,7 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   isPending: boolean
   isDirty: boolean
   reset: () => void
+  submit: () => void
   getValues: () => Partial<Input>
   setValues: (values: Partial<Input>) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
@@ -253,53 +254,49 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [inputRef, setField, validateOnBlur, validateOnChange, initialValues]
   )
 
+  const submit = useCallback(async () => {
+    // Reset field errors
+    setFieldErrors({})
+
+    // Validate all fields before submitting
+    if (!validate()) {
+      return
+    }
+
+    // Parse the form values
+    const input = schema
+      ? schema.parse(values.current)
+      : (values.current as Input)
+
+    // If there is an onSubmit callback, call it
+    if (onSubmit) {
+      const shouldSubmit = await onSubmit(input)
+      if (!shouldSubmit) return
+    }
+
+    // If there is no action, skip the submission
+    if (!action) return
+
+    // Create a FormData object from the values
+    const formData = createFormData(input)
+
+    // Call the server action
+    startTransition(async () => {
+      await formAction(formData)
+    })
+  }, [action, formAction, schema, validate, values, onSubmit])
+
   const connect = useCallback(() => {
     return {
       onSubmit: async (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault()
         event.stopPropagation()
 
-        // Reset field errors
-        setFieldErrors({})
-
-        // Validate all fields before submitting
-        if (!validate()) {
-          return
-        }
-
-        // Parse the form values
-        const input = schema
-          ? schema.parse(values.current)
-          : (values.current as Input)
-
-        // If there is an onSubmit callback, call it
-        if (onSubmit) {
-          const shouldSubmit = await onSubmit(input)
-          if (!shouldSubmit) return
-        }
-
-        // If there is no action, skip the submission
-        if (!action) return
-
-        // Create a FormData object from the values
-        const formData = createFormData(input)
-
-        // Call the server action
-        startTransition(async () => {
-          await formAction(formData)
-        })
+        submit()
       },
       action: formAction
     } satisfies Pick<FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'action'>
-  }, [
-    validate,
-    setFieldErrors,
-    startTransition,
-    formAction,
-    action,
-    onSubmit,
-    schema
-  ])
+  }, [submit, formAction])
 
   useEffect(() => {
     if (formState?.error || formState?.fieldErrors) {
@@ -320,6 +317,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     isPending,
     isDirty,
     reset,
+    submit,
     getValues,
     setValues,
     connect,
