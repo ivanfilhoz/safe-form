@@ -44,6 +44,7 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   fieldErrors: FormFieldErrors<Input>
   isPending: boolean
   isDirty: boolean
+  reset: () => void
   getValues: () => Partial<Input>
   setValues: (values: Partial<Input>) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
@@ -85,6 +86,13 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const flush = useCallback(() => {
     setFlushToggle((toggle) => !toggle)
   }, [])
+
+  const reset = useCallback(() => {
+    values.current = initialValues
+    setFieldErrors({})
+    setIsDirty(false)
+    flush()
+  }, [flush, initialValues])
 
   const getValues = useCallback(() => {
     return values.current
@@ -297,6 +305,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       formState?.fieldErrors ?? fieldErrors ?? ({} as FormFieldErrors<Input>),
     isPending,
     isDirty,
+    reset,
     getValues,
     setValues,
     connect,
