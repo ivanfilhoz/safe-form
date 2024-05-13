@@ -257,6 +257,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     return {
       onSubmit: async (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault()
+        event.stopPropagation()
 
         // Reset field errors
         setFieldErrors({})
