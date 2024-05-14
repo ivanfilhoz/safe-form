@@ -1,7 +1,7 @@
 'use client'
 
-import { createFormData } from '@/helpers/serializer'
 import { shallowEqual } from '@/helpers/shallowEqual'
+import { useFormAction } from '@/useFormAction'
 import {
   FormHTMLAttributes,
   HTMLAttributes,
@@ -11,12 +11,9 @@ import {
   SyntheticEvent,
   createRef,
   useCallback,
-  useEffect,
   useRef,
-  useState,
-  useTransition
+  useState
 } from 'react'
-import { useFormState } from 'react-dom'
 import type { Schema } from 'zod'
 import { parseValueFromInput } from './helpers/parseValueFromInput'
 import { parseZodError } from './helpers/parseZodError'
@@ -75,36 +72,50 @@ export const useForm = <Input extends FormInput, FormResponse>({
   onSuccess,
   onError
 }: UseFormParams<Input, FormResponse>): UseFormReturn<Input, FormResponse> => {
+  type ReturnObject = UseFormReturn<Input, FormResponse>
+
+  const {
+    isPending,
+    formAction,
+    submit: serverSubmit,
+    error: serverError,
+    response: serverResponse,
+    fieldErrors: serverFieldErrors
+  } = useFormAction({
+    action: action ?? null,
+    initialState,
+    onSuccess: (response) => {
+      setIsDirty(false)
+      onSuccess?.(response)
+    },
+    onError
+  })
+
   const inputRef = useRef<
     { [field in keyof Input]?: RefObject<BindableField> } | null
   >(null)
-  const [isPending, startTransition] = useTransition()
   const [isDirty, setIsDirty] = useState(false)
-  const [formState, formAction] = useFormState(
-    action ?? (() => null),
-    initialState ?? null
-  )
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
   const values = useRef<Partial<Input>>(initialValues)
-  const [flushToggle, setFlushToggle] = useState(false)
+  const [_, setFlushToggle] = useState(false)
 
   const flush = useCallback(() => {
     setFlushToggle((toggle) => !toggle)
   }, [])
 
-  const reset = useCallback(() => {
+  const reset = useCallback<ReturnObject['reset']>(() => {
     values.current = initialValues
     setFieldErrors({})
     setIsDirty(false)
     flush()
   }, [flush, initialValues])
 
-  const getValues = useCallback(() => {
+  const getValues = useCallback<ReturnObject['getValues']>(() => {
     return values.current
   }, [])
 
-  const setValues = useCallback(
-    (newValues: Partial<Input>, rerender: boolean = true) => {
+  const setValues = useCallback<ReturnObject['setValues']>(
+    (newValues, rerender = true) => {
       // Set the dirty state if the values have changed
       if (
         Object.keys(newValues).some(
@@ -136,7 +147,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [flush]
   )
 
-  const validate = useCallback(() => {
+  const validate = useCallback<ReturnObject['validate']>(() => {
     // If there is no schema, skip validation
     if (!schema) return true
 
@@ -153,8 +164,8 @@ export const useForm = <Input extends FormInput, FormResponse>({
     return true
   }, [setFieldErrors, schema])
 
-  const validateField = useCallback(
-    <Field extends keyof Input>(name: Field) => {
+  const validateField = useCallback<ReturnObject['validateField']>(
+    (name) => {
       const value = values.current[name]
 
       // If there is no schema, skip validation
@@ -191,16 +202,12 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [setFieldErrors, schema]
   )
 
-  const getField = useCallback(<Field extends keyof Input>(name: Field) => {
+  const getField = useCallback<ReturnObject['getField']>((name) => {
     return values.current[name]
   }, [])
 
-  const setField = useCallback(
-    <Field extends keyof Input>(
-      name: keyof Input,
-      value: Input[Field],
-      validate: boolean = true
-    ) => {
+  const setField = useCallback<ReturnObject['setField']>(
+    (name, value, validate = true) => {
       // Set the dirty state if the value has changed
       if (value !== values.current[name]) {
         setIsDirty(true)
@@ -227,8 +234,8 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [flush, validateField]
   )
 
-  const bindField = useCallback(
-    (name: keyof Input) => {
+  const bindField = useCallback<ReturnObject['bindField']>(
+    (name) => {
       if (inputRef.current === null) {
         inputRef.current = {}
       }
@@ -248,9 +255,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
         ref: inputRef.current[name],
         name: name.toString(),
         defaultValue: initialValues?.[name] ?? '',
-        onBlur: () => {
-          mutate(name, validateOnBlur)
-        },
+        onBlur: () => mutate(name, validateOnBlur),
         onChange: validateOnChange ? () => mutate(name) : undefined
       } satisfies InputHTMLAttributes<HTMLInputElement> &
         RefAttributes<BindableField>
@@ -258,11 +263,8 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [inputRef, setField, validateOnBlur, validateOnChange, initialValues]
   )
 
-  const getFieldErrorByPath = useCallback(
-    <Field extends keyof Input>([fieldName, ...subpath]: [
-      Field,
-      ...(string | number)[]
-    ]) => {
+  const getFieldErrorByPath = useCallback<ReturnObject['getFieldErrorByPath']>(
+    ([fieldName, ...subpath]) => {
       return fieldErrors[fieldName]?.rawErrors.find((e) =>
         shallowEqual(e.path, [fieldName, ...subpath])
       )?.message
@@ -270,7 +272,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [fieldErrors]
   )
 
-  const submit = useCallback(async () => {
+  const submit = useCallback<ReturnObject['submit']>(async () => {
     // Reset field errors
     setFieldErrors({})
 
@@ -290,19 +292,11 @@ export const useForm = <Input extends FormInput, FormResponse>({
       if (!shouldSubmit) return
     }
 
-    // If there is no action, skip the submission
-    if (!action) return
+    // Submit the server action
+    serverSubmit(input)
+  }, [schema, validate, values, onSubmit, serverSubmit])
 
-    // Create a FormData object from the values
-    const formData = createFormData(input)
-
-    // Call the server action
-    startTransition(async () => {
-      await formAction(formData)
-    })
-  }, [action, formAction, schema, validate, values, onSubmit])
-
-  const connect = useCallback(() => {
+  const connect = useCallback<ReturnObject['connect']>(() => {
     return {
       onSubmit: async (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -314,22 +308,11 @@ export const useForm = <Input extends FormInput, FormResponse>({
     } satisfies Pick<FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'action'>
   }, [submit, formAction])
 
-  useEffect(() => {
-    if (formState?.error || formState?.fieldErrors) {
-      onError?.(formState?.error ?? null, formState?.fieldErrors ?? null)
-    }
-    if (formState?.response) {
-      setIsDirty(false)
-      onSuccess?.(formState.response)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formState])
-
   return {
-    error: formState?.error ?? null,
-    response: formState?.response ?? null,
+    error: serverError,
+    response: serverResponse,
     fieldErrors:
-      formState?.fieldErrors ?? fieldErrors ?? ({} as FormFieldErrors<Input>),
+      serverFieldErrors ?? fieldErrors ?? ({} as FormFieldErrors<Input>),
     isPending,
     isDirty,
     reset,

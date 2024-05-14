@@ -6,7 +6,7 @@ import { useFormState } from 'react-dom'
 import { FormAction, FormFieldErrors, FormInput, FormState } from './types'
 
 type UseFormActionParams<Input extends FormInput, FormResponse> = {
-  action?: FormAction<Input, FormResponse> | null
+  action: FormAction<Input, FormResponse> | null
   initialState?: FormState<Input, FormResponse> | null
   onSuccess?: (response: FormResponse) => void
   onError?: (
@@ -20,6 +20,7 @@ type UseFormActionReturn<Input extends FormInput, FormResponse> = {
   response: FormResponse | null
   fieldErrors: FormFieldErrors<Input> | null
   isPending: boolean
+  formAction: (payload: FormData) => void
   submit: (input: Input) => void
 }
 
@@ -69,6 +70,7 @@ export const useFormAction = <Input extends FormInput, FormResponse>({
     response: formState?.response ?? null,
     fieldErrors: formState?.fieldErrors ?? null,
     isPending,
+    formAction,
     submit
   }
 }

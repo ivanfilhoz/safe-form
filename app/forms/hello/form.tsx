@@ -86,13 +86,6 @@ export const HelloForm = ({
       <label htmlFor='attachment'>Attachment</label>
       <input type='file' {...bindField('attachment')} />
       {fieldErrors.attachment && <pre>{fieldErrors.attachment.first}</pre>}
-      <label htmlFor='terms'>
-        <input {...bindField('terms')} type='checkbox' autoComplete='off' /> I
-        accept the terms
-      </label>
-      {fieldErrors.terms && (
-        <div className='text-sm text-red-500'>{fieldErrors.terms.first}</div>
-      )}
       <label htmlFor='contacts'>Contacts</label>
       {contacts.map((contact, index) => {
         const setSubfield = (subfield: 'name' | 'email', value: string) =>
@@ -146,6 +139,21 @@ export const HelloForm = ({
       >
         Add contact
       </button>
+      {fieldErrors.contacts && (
+        <div className='text-sm text-red-500'>
+          {fieldErrors.contacts.first ??
+            (fieldErrors.contacts.hasChildErrors
+              ? 'There are errors in some of the contacts.'
+              : '')}
+        </div>
+      )}
+      <label htmlFor='terms'>
+        <input {...bindField('terms')} type='checkbox' autoComplete='off' /> I
+        accept the terms
+      </label>
+      {fieldErrors.terms && (
+        <div className='text-sm text-red-500'>{fieldErrors.terms.first}</div>
+      )}
       <button type='submit' disabled={isPending}>
         Submit
       </button>

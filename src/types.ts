@@ -1,12 +1,13 @@
-import { ZodError } from 'zod'
+import { ZodIssue } from 'zod'
 
 export type FormInput = Record<string, any>
 
 export type FormFieldErrors<Input extends FormInput> = {
   [field in keyof Input]?: {
-    first: string
+    first: string | undefined
     all: string[]
-    rawErrors: ZodError<Input>['errors']
+    hasChildErrors: boolean
+    rawErrors: ZodIssue[]
   }
 }
 

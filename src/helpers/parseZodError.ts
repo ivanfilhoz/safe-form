@@ -1,3 +1,4 @@
+import { shallowEqual } from '@/helpers/shallowEqual'
 import type { ZodError } from 'zod'
 import { FormFieldErrors, FormInput } from '..'
 
@@ -7,15 +8,19 @@ export const parseZodError = <Input extends FormInput>(
   const { fieldErrors } = error.flatten()
 
   return Object.keys(fieldErrors).reduce((acc, key) => {
-    const fieldError = fieldErrors[key as keyof typeof fieldErrors] as string[]
-    const first = fieldError?.[0]
+    const rawErrors = error.errors.filter((e) => e.path[0] === key)
+
+    const all = rawErrors
+      .filter((e) => shallowEqual(e.path, [key]))
+      .map((issue) => issue.message)
 
     return {
       ...acc,
       [key]: {
-        first,
-        all: fieldError,
-        rawErrors: error.errors
+        first: all[0],
+        all,
+        hasChildErrors: rawErrors.length > all.length,
+        rawErrors
       } satisfies FormFieldErrors<Input>[typeof key]
     }
   }, {})
