@@ -1,4 +1,3 @@
-import { shallowEqual } from '@/helpers/shallowEqual'
 import type { ZodError } from 'zod'
 import { FormFieldErrors, FormInput } from '..'
 
@@ -16,11 +15,7 @@ export const parseZodError = <Input extends FormInput>(
       [key]: {
         first,
         all: fieldError,
-        rawErrors: error.errors,
-        firstByPath: (path: (string | number)[]) => {
-          return error.errors.find((e) => shallowEqual(e.path, [key, ...path]))
-            ?.message
-        }
+        rawErrors: error.errors
       } satisfies FormFieldErrors<Input>[typeof key]
     }
   }, {})

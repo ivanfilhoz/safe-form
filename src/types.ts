@@ -7,7 +7,6 @@ export type FormFieldErrors<Input extends FormInput> = {
     first: string
     all: string[]
     rawErrors: ZodError<Input>['errors']
-    firstByPath: (path: (string | number)[]) => string | undefined
   }
 }
 

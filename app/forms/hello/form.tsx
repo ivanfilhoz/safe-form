@@ -27,7 +27,8 @@ export const HelloForm = ({
     setValues,
     getField,
     setField,
-    validateField
+    validateField,
+    getFieldErrorByPath
   } = useForm({
     action: helloAction,
     schema: clientValidation ? helloSchema : undefined,
@@ -50,7 +51,6 @@ export const HelloForm = ({
     }
   })
 
-  console.log({ fieldErrors })
   const contacts = getField('contacts') || []
 
   return (
@@ -112,7 +112,7 @@ export const HelloForm = ({
             />
             {fieldErrors.contacts && (
               <div className='text-sm text-red-500'>
-                {fieldErrors.contacts.firstByPath([index, 'name'])}
+                {getFieldErrorByPath(['contacts', index, 'name'])}
               </div>
             )}
             <label htmlFor='email'>Email</label>
@@ -122,7 +122,7 @@ export const HelloForm = ({
             />
             {fieldErrors.contacts && (
               <div className='text-sm text-red-500'>
-                {fieldErrors.contacts.firstByPath([index, 'email'])}
+                {getFieldErrorByPath(['contacts', index, 'email'])}
               </div>
             )}
             <button

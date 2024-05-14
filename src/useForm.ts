@@ -1,6 +1,7 @@
 'use client'
 
 import { createFormData } from '@/helpers/serializer'
+import { shallowEqual } from '@/helpers/shallowEqual'
 import {
   FormHTMLAttributes,
   HTMLAttributes,
@@ -24,7 +25,7 @@ import { FormAction, FormFieldErrors, FormInput, FormState } from './types'
 type BindableField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 
 type UseFormParams<Input extends FormInput, FormResponse> = {
-  action?: FormAction<Input, FormResponse>
+  action?: FormAction<Input, FormResponse> | null
   schema?: Schema<Input>
   initialState?: FormState<Input, FormResponse> | null
   initialValues?: Partial<Input>
@@ -58,6 +59,9 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   ) => void
   validateField: <Field extends keyof Input>(name: Field) => boolean
   bindField: (name: keyof Input) => HTMLAttributes<BindableField>
+  getFieldErrorByPath: <Field extends keyof Input>(
+    path: [Field, ...(string | number)[]]
+  ) => string | undefined
 }
 
 export const useForm = <Input extends FormInput, FormResponse>({
@@ -254,6 +258,18 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [inputRef, setField, validateOnBlur, validateOnChange, initialValues]
   )
 
+  const getFieldErrorByPath = useCallback(
+    <Field extends keyof Input>([fieldName, ...subpath]: [
+      Field,
+      ...(string | number)[]
+    ]) => {
+      return fieldErrors[fieldName]?.rawErrors.find((e) =>
+        shallowEqual(e.path, [fieldName, ...subpath])
+      )?.message
+    },
+    [fieldErrors]
+  )
+
   const submit = useCallback(async () => {
     // Reset field errors
     setFieldErrors({})
@@ -325,6 +341,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     getField,
     setField,
     validateField,
-    bindField
+    bindField,
+    getFieldErrorByPath
   }
 }
