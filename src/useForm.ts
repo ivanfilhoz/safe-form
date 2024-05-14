@@ -28,7 +28,7 @@ type UseFormParams<Input extends FormInput, FormResponse> = {
   initialValues?: Partial<Input>
   validateOnBlur?: boolean
   validateOnChange?: boolean
-  onSubmit?: (input: Input) => boolean | Promise<boolean>
+  onSubmit?: (input: Input) => boolean | void | Promise<boolean | void>
   onSuccess?: (response: FormResponse) => void
   onError?: (
     error: string | null,
@@ -289,7 +289,9 @@ export const useForm = <Input extends FormInput, FormResponse>({
     // If there is an onSubmit callback, call it
     if (onSubmit) {
       const shouldSubmit = await onSubmit(input)
-      if (!shouldSubmit) return
+
+      // If the callback explicitly returns false, skip the server action
+      if (shouldSubmit === false) return
     }
 
     // Submit the server action
