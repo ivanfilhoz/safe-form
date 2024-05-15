@@ -30,7 +30,9 @@
     "validation",
     "server",
     "action",
-    "canary"
+    "canary",
+    "front-end",
+    "back-end"
   ],
   "author": "Ivan Filho",
   "license": "MIT",
