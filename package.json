@@ -1,6 +1,6 @@
 {
   "name": "safe-form",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "⚡️ End-to-end type-safety from client to server.",
   "main": "dist/safe-form.es.js",
   "types": "dist/index.d.ts",
@@ -61,8 +61,5 @@
   "peerDependencies": {
     "next": "^14",
     "zod": "^3"
-  },
-  "dependencies": {
-    "safe-form": "latest"
   }
 }

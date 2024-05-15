@@ -17,7 +17,8 @@
 
 ## Requirements
 
-- [Next.js](https://nextjs.org/) >14
+- [Next.js](https://nextjs.org/) >=14
+- [zod](https://github.com/colinhacks/zod) >=3
 
 ## Install
 
