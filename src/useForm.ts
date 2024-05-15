@@ -47,7 +47,14 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   getValues: () => Partial<Input>
   setValues: (values: Partial<Input>) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
-  validate: () => boolean
+  validate: () =>
+    | {
+        success: true
+      }
+    | {
+        success: false
+        fieldErrors: FormFieldErrors<Input>
+      }
   getField: <Field extends keyof Input>(name: Field) => Input[Field] | undefined
   setField: <Field extends keyof Input>(
     name: Field,
@@ -149,19 +156,29 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
   const validate = useCallback<ReturnObject['validate']>(() => {
     // If there is no schema, skip validation
-    if (!schema) return true
+    if (!schema) {
+      return {
+        success: true
+      }
+    }
 
     // Validate all fields
     const validation = schema.safeParse(values.current)
 
     if (!validation.success) {
+      const fieldErrors = parseZodError(validation.error)
       setFieldErrors(parseZodError(validation.error))
-      return false
+      return {
+        success: false,
+        fieldErrors
+      }
     }
 
     // Reset field errors if validation is successful
     setFieldErrors({})
-    return true
+    return {
+      success: true
+    }
   }, [setFieldErrors, schema])
 
   const validateField = useCallback<ReturnObject['validateField']>(
@@ -277,7 +294,9 @@ export const useForm = <Input extends FormInput, FormResponse>({
     setFieldErrors({})
 
     // Validate all fields before submitting
-    if (!validate()) {
+    const validation = validate()
+    if (!validation.success) {
+      onError?.(null, validation.fieldErrors)
       return
     }
 
@@ -296,16 +315,18 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
     // Submit the server action
     serverSubmit(input)
-  }, [schema, validate, values, onSubmit, serverSubmit])
+  }, [schema, validate, values, onSubmit, onError, serverSubmit])
 
   const connect = useCallback<ReturnObject['connect']>(() => {
     return {
+      // Patch the onSubmit event to call the submit function
       onSubmit: async (event: SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault()
         event.stopPropagation()
 
         submit()
       },
+      // Pass the form action as a graceful fallback
       action: formAction
     } satisfies Pick<FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'action'>
   }, [submit, formAction])
