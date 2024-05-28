@@ -1,7 +1,5 @@
 'use client'
 
-import { shallowEqual } from '@/helpers/shallowEqual'
-import { useFormAction } from '@/useFormAction'
 import {
   FormHTMLAttributes,
   HTMLAttributes,
@@ -17,7 +15,9 @@ import {
 import type { Schema } from 'zod'
 import { parseValueFromInput } from './helpers/parseValueFromInput'
 import { parseZodError } from './helpers/parseZodError'
+import { shallowEqual } from './helpers/shallowEqual'
 import { FormAction, FormFieldErrors, FormInput, FormState } from './types'
+import { useFormAction } from './useFormAction'
 
 type BindableField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 
