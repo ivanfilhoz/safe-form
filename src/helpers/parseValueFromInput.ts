@@ -26,7 +26,7 @@ export const parseValueFromInput = (
   }
 
   if (input.type === 'date') {
-    return input.valueAsDate?.toISOString() ?? null
+    return input.valueAsDate?.toISOString()?.split?.('T')?.[0] ?? null
   }
 
   return input.value
