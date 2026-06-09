@@ -10,15 +10,16 @@
 
 - ✅ Ridiculously easy to use
 - ✅ 100% type-safe
-- ✅ Input validation using [zod](https://github.com/colinhacks/zod)
+- ✅ Input validation using [Standard Schema](https://standardschema.dev/)
 - ✅ Server error handling
 - ✅ Automatic input binding
 - ✅ Native file upload support
 
 ## Requirements
 
-- [Next.js](https://nextjs.org/) >=14
-- [zod](https://github.com/colinhacks/zod) >=3
+- [React](https://react.dev/) >=19
+- A React framework or bundler with Server Functions support
+- A [Standard Schema](https://standardschema.dev/) compatible validator, such as [zod](https://github.com/colinhacks/zod), [Valibot](https://valibot.dev/), or [ArkType](https://arktype.io/)
 
 ## Install
 
@@ -26,9 +27,18 @@
 npm install safe-form
 ```
 
+Install a validator separately if your app does not already have one:
+
+```bash
+npm install zod
+```
+
 ## Usage
 
-First, define your schema in a separate file, so you can use it both in the form and in the server action:
+Use the `safe-form/server` and `safe-form/client` entrypoints to keep server
+and client boundaries explicit.
+
+First, define your schema in a separate file, so you can use it both in the form and in the server action. This example uses zod, but safe-form accepts any Standard Schema compatible validator:
 
 `schema.ts`
 
@@ -49,7 +59,7 @@ Now, create a server action:
 ```ts
 'use server'
 
-import { createFormAction, FormActionError } from 'safe-form'
+import { createFormAction, FormActionError } from 'safe-form/server'
 import { exampleSchema } from './schema'
 
 export const exampleAction = createFormAction(exampleSchema, async (input) => {
@@ -68,7 +78,7 @@ Finally, create a form as a client component:
 ```tsx
 'use client'
 
-import { useForm } from 'safe-form'
+import { useForm } from 'safe-form/client'
 import { exampleAction } from './action'
 import { exampleSchema } from './schema'
 

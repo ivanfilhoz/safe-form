@@ -12,18 +12,95 @@ import {
   useRef,
   useState
 } from 'react'
-import type { Schema } from 'zod'
-import { parseValueFromInput } from './helpers/parseValueFromInput'
-import { parseZodError } from './helpers/parseZodError'
-import { shallowEqual } from './helpers/shallowEqual'
-import { FormAction, FormFieldErrors, FormInput, FormState } from './types'
-import { useFormAction } from './useFormAction'
+import { parseValueFromInput } from './helpers/parseValueFromInput.js'
+import { shallowEqual } from './helpers/shallowEqual.js'
+import {
+  getIssuePath,
+  parseStandardSchemaIssues,
+  validateStandardSchema
+} from './helpers/standardSchema.js'
+import {
+  FormAction,
+  FormFieldErrors,
+  FormInput,
+  FormSchema,
+  FormState
+} from './types.js'
+import { useFormAction } from './useFormAction.js'
 
 type BindableField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+type FieldDefaultValue = InputHTMLAttributes<HTMLInputElement>['defaultValue']
+
+const getInputDateValue = (value: Date) => value.toISOString().slice(0, 10)
+
+const getStringValue = (value: unknown) => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string' || typeof value === 'number') return value
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (value instanceof Date) return getInputDateValue(value)
+
+  return String(value)
+}
+
+const getDefaultValue = (value: unknown): FieldDefaultValue => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string' || typeof value === 'number') return value
+  if (value instanceof Date) return getInputDateValue(value)
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+    return value
+  }
+
+  return String(value)
+}
+
+const setElementValue = (element: BindableField, value: unknown) => {
+  if (element instanceof HTMLInputElement) {
+    if (element.type === 'checkbox') {
+      element.checked = Boolean(value)
+      return
+    }
+
+    if (element.type === 'radio') {
+      element.checked = value !== null && element.value === String(value)
+      return
+    }
+
+    if (element.type === 'date') {
+      const date =
+        value instanceof Date ? value : value ? new Date(String(value)) : null
+
+      element.valueAsDate = date && !Number.isNaN(date.getTime()) ? date : null
+      return
+    }
+
+    if (element.type === 'file') {
+      if (value === null || value === undefined) {
+        element.value = ''
+      }
+      return
+    }
+
+    element.value = String(getStringValue(value))
+    return
+  }
+
+  if (element instanceof HTMLSelectElement && element.multiple) {
+    const selectedValues = new Set(
+      Array.isArray(value) ? value.map((item) => String(item)) : []
+    )
+
+    for (const option of element.options) {
+      option.selected = selectedValues.has(option.value)
+    }
+    return
+  }
+
+  element.value = String(getStringValue(value))
+}
 
 type UseFormParams<Input extends FormInput, FormResponse> = {
   action?: FormAction<Input, FormResponse> | null
-  schema?: Schema<Input>
+  schema?: FormSchema<FormInput, Input>
   initialState?: FormState<Input, FormResponse> | null
   initialValues?: Partial<Input>
   validateOnBlur?: boolean
@@ -47,21 +124,23 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   getValues: () => Partial<Input>
   setValues: (values: Partial<Input>) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
-  validate: () =>
+  validate: () => Promise<
     | {
         success: true
+        value: Input
       }
     | {
         success: false
         fieldErrors: FormFieldErrors<Input>
       }
+  >
   getField: <Field extends keyof Input>(name: Field) => Input[Field] | undefined
   setField: <Field extends keyof Input>(
     name: Field,
     value: Input[Field],
     validate?: boolean
   ) => void
-  validateField: <Field extends keyof Input>(name: Field) => boolean
+  validateField: <Field extends keyof Input>(name: Field) => Promise<boolean>
   bindField: (name: keyof Input) => HTMLAttributes<BindableField>
   getFieldErrorByPath: <Field extends keyof Input>(
     path: [Field, ...(string | number)[]]
@@ -99,12 +178,12 @@ export const useForm = <Input extends FormInput, FormResponse>({
   })
 
   const inputRef = useRef<
-    { [field in keyof Input]?: RefObject<BindableField> } | null
+    { [field in keyof Input]?: RefObject<BindableField | null> } | null
   >(null)
   const [isDirty, setIsDirty] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
   const values = useRef<Partial<Input>>(initialValues)
-  const [_, setFlushToggle] = useState(false)
+  const [, setFlushToggle] = useState(false)
 
   const flush = useCallback(() => {
     setFlushToggle((toggle) => !toggle)
@@ -142,7 +221,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
         for (const name in newValues) {
           const ref = inputRef.current?.[name]
           if (ref?.current) {
-            ref.current.value = newValues[name] as string
+            setElementValue(ref.current, newValues[name])
           }
         }
       }
@@ -154,20 +233,21 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [flush]
   )
 
-  const validate = useCallback<ReturnObject['validate']>(() => {
+  const validate = useCallback<ReturnObject['validate']>(async () => {
     // If there is no schema, skip validation
     if (!schema) {
       return {
-        success: true
+        success: true,
+        value: values.current as Input
       }
     }
 
     // Validate all fields
-    const validation = schema.safeParse(values.current)
+    const validation = await validateStandardSchema(schema, values.current)
 
     if (!validation.success) {
-      const fieldErrors = parseZodError(validation.error)
-      setFieldErrors(parseZodError(validation.error))
+      const fieldErrors = parseStandardSchemaIssues<Input>(validation.issues)
+      setFieldErrors(fieldErrors)
       return {
         success: false,
         fieldErrors
@@ -177,24 +257,25 @@ export const useForm = <Input extends FormInput, FormResponse>({
     // Reset field errors if validation is successful
     setFieldErrors({})
     return {
-      success: true
+      success: true,
+      value: validation.value
     }
-  }, [setFieldErrors, schema])
+  }, [setFieldErrors, schema, values])
 
   const validateField = useCallback<ReturnObject['validateField']>(
-    (name) => {
+    async (name) => {
       const value = values.current[name]
 
       // If there is no schema, skip validation
       if (!schema) return true
 
       // Validate a single field
-      const validation = schema.safeParse({
+      const validation = await validateStandardSchema(schema, {
         [name]: value
       })
 
       if (!validation.success) {
-        const errors = parseZodError<Input>(validation.error)[name]
+        const errors = parseStandardSchemaIssues<Input>(validation.issues)[name]
 
         if (errors) {
           setFieldErrors((fieldErrors) => ({
@@ -238,7 +319,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       // If there is a bound field, update its value
       const ref = inputRef.current?.[name]
       if (ref?.current) {
-        ref.current.value = value as string
+        setElementValue(ref.current, value)
       }
 
       // Either validate or just flush the state
@@ -271,7 +352,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       return {
         ref: inputRef.current[name],
         name: name.toString(),
-        defaultValue: initialValues?.[name] ?? '',
+        defaultValue: getDefaultValue(initialValues?.[name]),
         onBlur: () => mutate(name, validateOnBlur),
         onChange: validateOnChange ? () => mutate(name) : undefined
       } satisfies InputHTMLAttributes<HTMLInputElement> &
@@ -283,7 +364,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const getFieldErrorByPath = useCallback<ReturnObject['getFieldErrorByPath']>(
     ([fieldName, ...subpath]) => {
       return fieldErrors[fieldName]?.rawErrors.find((e) =>
-        shallowEqual(e.path, [fieldName, ...subpath])
+        shallowEqual(getIssuePath(e), [fieldName, ...subpath])
       )?.message
     },
     [fieldErrors]
@@ -294,16 +375,14 @@ export const useForm = <Input extends FormInput, FormResponse>({
     setFieldErrors({})
 
     // Validate all fields before submitting
-    const validation = validate()
+    const validation = await validate()
     if (!validation.success) {
       onError?.(null, validation.fieldErrors)
       return
     }
 
     // Parse the form values
-    const input = schema
-      ? schema.parse(values.current)
-      : (values.current as Input)
+    const input = validation.value
 
     // If there is an onSubmit callback, call it
     if (onSubmit) {
@@ -315,7 +394,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
     // Submit the server action
     serverSubmit(input)
-  }, [schema, validate, values, onSubmit, onError, serverSubmit])
+  }, [validate, onSubmit, onError, serverSubmit])
 
   const connect = useCallback<ReturnObject['connect']>(() => {
     return {

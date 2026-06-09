@@ -2,18 +2,38 @@
   "name": "safe-form",
   "version": "0.11.2",
   "description": "⚡️ End-to-end type-safety from client to server.",
-  "main": "dist/safe-form.es.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist"
   ],
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "vite build",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "test": "vitest",
+    "test:compat": "npm run build && npm run test:compat:types && npm run test:compat:frameworks",
+    "test:compat:types": "tsc -p test/compat/next/tsconfig.json && tsc -p test/compat/waku/tsconfig.json && tsc -p test/compat/react-router-vite/tsconfig.json",
+    "test:compat:frameworks": "npm run test:compat:next && npm run test:compat:waku && npm run test:compat:react-router-vite",
+    "test:compat:next": "next build test/compat/next",
+    "test:compat:waku": "cd test/compat/waku && waku build",
+    "test:compat:react-router-vite": "react-router build test/compat/react-router-vite",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ./src/**/*.ts"
+    "lint": "eslint \"./src/**/*.{ts,tsx}\""
   },
   "repository": {
     "type": "git",
@@ -23,14 +43,14 @@
     "react",
     "safe",
     "form",
-    "next",
-    "nextjs",
-    "zod",
+    "rsc",
+    "standard-schema",
     "hook",
     "validation",
     "server",
     "action",
-    "canary",
+    "server-functions",
+    "framework-agnostic",
     "front-end",
     "back-end"
   ],
@@ -41,27 +61,35 @@
   },
   "homepage": "https://github.com/ivanfilhoz/safe-form#readme",
   "devDependencies": {
-    "@testing-library/react": "^15.0.7",
+    "@react-router/dev": "^7.16.0",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20.11.25",
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.18",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.60.1",
+    "@typescript-eslint/parser": "^8.60.1",
+    "@vitejs/plugin-react": "^5.2.0",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.1.3",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^24.0.0",
-    "postcss": "^8.4.35",
+    "next": "^16.2.7",
     "prettier": "^3.2.5",
     "prettier-config-standard": "^7.0.0",
-    "rollup-plugin-typescript2": "^0.36.0",
-    "tailwindcss": "^3.4.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "^7.16.0",
+    "react-server-dom-webpack": "^19.2.7",
     "typescript": "^5.4.2",
-    "vite": "^5.1.5",
-    "vite-plugin-dts": "^3.7.3",
-    "vitest": "^1.3.1"
+    "vite": "^7.3.5",
+    "vitest": "^4.1.8",
+    "waku": "^0.27.5",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "next": "^14",
-    "zod": "^3"
+    "react": "^19"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "superjson": "^2.2.1"
   }
 }

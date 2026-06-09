@@ -1,1 +1,0 @@
-export { HelloForm } from './form'

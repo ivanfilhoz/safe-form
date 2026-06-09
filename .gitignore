@@ -12,6 +12,11 @@ node_modules
 # next.js
 /.next/
 /out/
+/test/compat/**/.next/
+/test/compat/**/.waku/
+/test/compat/**/build/
+/test/compat/**/dist/
+/test/compat/next/next-env.d.ts
 
 # production
 /build
@@ -20,6 +25,8 @@ node_modules
 # misc
 .DS_Store
 *.pem
+/dev/
+/new-dev/
 
 # debug
 npm-debug.log*
@@ -34,4 +41,4 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+/next-env.d.ts

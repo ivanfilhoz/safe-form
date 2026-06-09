@@ -1,4 +1,5 @@
 export { FormActionError } from './FormActionError.js'
+export { createFormAction } from './createFormAction.js'
 export type {
   FormAction,
   FormFieldErrors,

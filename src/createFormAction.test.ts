@@ -1,5 +1,60 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { expect, test } from 'vitest'
+import { createFormData } from './helpers/serializer'
+import { createFormAction } from './createFormAction'
 
-test('bogus', () => {
-  expect(true).toBe(true)
+const schema: StandardSchemaV1<
+  { name?: unknown },
+  {
+    name: string
+  }
+> = {
+  '~standard': {
+    version: 1,
+    vendor: 'safe-form-test',
+    validate(value: unknown) {
+      const input = value as { name?: unknown }
+
+      if (typeof input.name !== 'string' || input.name.length < 3) {
+        return {
+          issues: [
+            {
+              message: 'Name must be at least 3 characters',
+              path: ['name']
+            }
+          ]
+        }
+      }
+
+      return {
+        value: {
+          name: input.name.trim()
+        }
+      }
+    }
+  }
+} as const
+
+test('validates form data with a standard schema', async () => {
+  const action = createFormAction(schema, async (input) => {
+    return `Hello, ${input.name}`
+  })
+
+  const result = await action(null, createFormData({ name: 'Ivan ' }))
+
+  expect(result).toEqual({
+    response: 'Hello, Ivan'
+  })
+})
+
+test('returns field errors for standard schema issues', async () => {
+  const action = createFormAction(schema, async (input) => {
+    return `Hello, ${input.name}`
+  })
+
+  const result = await action(null, createFormData({ name: 'Iv' }))
+
+  expect(result.fieldErrors?.name?.first).toBe(
+    'Name must be at least 3 characters'
+  )
 })

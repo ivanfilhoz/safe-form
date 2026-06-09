@@ -1,28 +1,39 @@
-import type { Schema } from 'zod'
-import { FormActionError } from './FormActionError'
-import { parseZodError } from './helpers/parseZodError'
-import { parseFormData } from './helpers/serializer'
-import { FormAction, FormInput, FormState } from './types'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { FormActionError } from './FormActionError.js'
+import { parseFormData } from './helpers/serializer.js'
+import {
+  parseStandardSchemaIssues,
+  validateStandardSchema
+} from './helpers/standardSchema.js'
+import { FormAction, FormInput, FormState } from './types.js'
 
-export const createFormAction = <Input extends FormInput, FormResponse>(
-  schema: Schema<Input>,
+export const createFormAction = <
+  Schema extends StandardSchemaV1<FormInput, FormInput>,
+  FormResponse
+>(
+  schema: Schema,
   handler: (
-    validatedInput: Input,
-    initialState?: FormState<Input, FormResponse> | null
+    validatedInput: StandardSchemaV1.InferOutput<Schema>,
+    initialState?: FormState<
+      StandardSchemaV1.InferOutput<Schema>,
+      FormResponse
+    > | null
   ) => Promise<FormResponse>
-): FormAction<Input, FormResponse> => {
+): FormAction<StandardSchemaV1.InferOutput<Schema>, FormResponse> => {
   return async (initialState, formData) => {
     const input = parseFormData(formData)
-    const validatedInput = schema.safeParse(input)
+    const validation = await validateStandardSchema(schema, input)
 
-    if (!validatedInput.success) {
+    if (!validation.success) {
       return {
-        fieldErrors: parseZodError<Input>(validatedInput.error)
+        fieldErrors: parseStandardSchemaIssues<
+          StandardSchemaV1.InferOutput<Schema>
+        >(validation.issues)
       }
     }
 
     try {
-      const output = await handler(validatedInput.data, initialState)
+      const output = await handler(validation.value, initialState)
 
       return {
         response: output
@@ -36,5 +47,3 @@ export const createFormAction = <Input extends FormInput, FormResponse>(
     }
   }
 }
-
-export { useForm } from './useForm'

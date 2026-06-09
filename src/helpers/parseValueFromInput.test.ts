@@ -57,7 +57,8 @@ test('handles date inputs', () => {
   input.type = 'date'
   input.value = '2022-01-01'
   const result = parseValueFromInput(input)
-  expect(result).toEqual('2022-01-01T00:00:00.000Z')
+  expect(result).toHaveProperty('toISOString')
+  expect((result as Date).toISOString()).toEqual('2022-01-01T00:00:00.000Z')
 })
 
 test('handles textareas', () => {

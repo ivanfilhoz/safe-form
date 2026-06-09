@@ -1,9 +1,11 @@
-import { FormInput } from '../types'
+import superjson from 'superjson'
+import type { FormInput } from '../types.js'
+
 const SCALARS_FIELD = '__safe-form-scalars'
 
 export const createFormData = <Input extends FormInput>(values: Input) => {
   const formData = new FormData()
-  let scalars: any = {}
+  const scalars: Record<string, unknown> = {}
 
   for (const [name, value] of Object.entries(values)) {
     // Handle files
@@ -16,7 +18,7 @@ export const createFormData = <Input extends FormInput>(values: Input) => {
     scalars[name] = value
   }
 
-  formData.append(SCALARS_FIELD, JSON.stringify(scalars))
+  formData.append(SCALARS_FIELD, superjson.stringify(scalars))
 
   return formData
 }
@@ -27,8 +29,10 @@ export const parseFormData = (formData: FormData): Record<string, unknown> => {
   for (const [name, value] of Array.from(formData.entries())) {
     // Handle scalars
     if (name === SCALARS_FIELD) {
-      const scalars = JSON.parse(value as string)
-      for (const [name, value] of Object.entries(scalars)) {
+      const scalars = superjson.parse(value as string)
+      for (const [name, value] of Object.entries(
+        scalars as Record<string, unknown>
+      )) {
         input[name] = value
       }
       continue

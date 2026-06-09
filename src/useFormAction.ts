@@ -1,9 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useTransition } from 'react'
-import { useFormState } from 'react-dom'
-import { createFormData } from './helpers/serializer'
-import { FormAction, FormFieldErrors, FormInput, FormState } from './types'
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useRef,
+  useTransition
+} from 'react'
+import { createFormData } from './helpers/serializer.js'
+import { FormAction, FormFieldErrors, FormInput, FormState } from './types.js'
 
 type UseFormActionParams<Input extends FormInput, FormResponse> = {
   action: FormAction<Input, FormResponse> | null
@@ -33,11 +38,21 @@ export const useFormAction = <Input extends FormInput, FormResponse>({
   Input,
   FormResponse
 > => {
-  const [isPending, startTransition] = useTransition()
-  const [formState, formAction] = useFormState(
-    action ?? (() => null),
-    initialState ?? null
-  )
+  const [isTransitionPending, startTransition] = useTransition()
+  const onSuccessRef = useRef(onSuccess)
+  const onErrorRef = useRef(onError)
+  const [formState, formAction, isActionPending] = useActionState<
+    FormState<Input, FormResponse> | null,
+    FormData
+  >(action ?? (async () => null), initialState ?? null)
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess
+  }, [onSuccess])
+
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
 
   const submit = useCallback(
     async (input: Input) => {
@@ -48,8 +63,8 @@ export const useFormAction = <Input extends FormInput, FormResponse>({
       const formData = createFormData(input)
 
       // Call the server action
-      startTransition(async () => {
-        await formAction(formData)
+      startTransition(() => {
+        formAction(formData)
       })
     },
     [formAction, action]
@@ -57,19 +72,21 @@ export const useFormAction = <Input extends FormInput, FormResponse>({
 
   useEffect(() => {
     if (formState?.error || formState?.fieldErrors) {
-      onError?.(formState?.error ?? null, formState?.fieldErrors ?? null)
+      onErrorRef.current?.(
+        formState?.error ?? null,
+        formState?.fieldErrors ?? null
+      )
     }
     if (formState?.response) {
-      onSuccess?.(formState.response)
+      onSuccessRef.current?.(formState.response)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formState])
 
   return {
     error: formState?.error ?? null,
     response: formState?.response ?? null,
     fieldErrors: formState?.fieldErrors ?? null,
-    isPending,
+    isPending: isActionPending || isTransitionPending,
     formAction,
     submit
   }

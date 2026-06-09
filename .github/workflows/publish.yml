@@ -36,6 +36,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run compatibility tests
+        run: npm run test:compat
+
       - name: Check if version has been bumped
         id: version-check
         run: |
