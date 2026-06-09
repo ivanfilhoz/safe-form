@@ -6,21 +6,26 @@ on:
       - main
       - beta
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org/'
+          package-manager-cache: false
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run typecheck
         run: npm run typecheck
@@ -35,7 +40,16 @@ jobs:
         id: version-check
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          NPM_VERSION=$(npm view $(node -p "require('./package.json').name") version)
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            NPM_VERSION=$(npm view $(node -p "require('./package.json').name") version)
+          elif [ "${{ github.ref }}" == "refs/heads/beta" ]; then
+            NPM_VERSION=$(npm view $(node -p "require('./package.json').name") dist-tags.beta)
+          else
+            echo "This branch is not configured for publishing."
+            echo "bumped=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           if [ "$VERSION" = "$NPM_VERSION" ]; then
             echo "Version has not been bumped."
             echo "bumped=false" >> $GITHUB_OUTPUT
@@ -50,6 +64,9 @@ jobs:
 
       - name: Publish to npm
         if: steps.version-check.outputs.bumped == 'true'
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            npm publish
+          elif [ "${{ github.ref }}" == "refs/heads/beta" ]; then
+            npm publish --tag beta
+          fi
