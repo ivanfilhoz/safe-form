@@ -25,10 +25,13 @@ export const createFormAction = <
     const validation = await validateStandardSchema(schema, input)
 
     if (!validation.success) {
+      const { fieldErrors, rootError } = parseStandardSchemaIssues<
+        StandardSchemaV1.InferOutput<Schema>
+      >(validation.issues)
+
       return {
-        fieldErrors: parseStandardSchemaIssues<
-          StandardSchemaV1.InferOutput<Schema>
-        >(validation.issues)
+        fieldErrors,
+        ...(rootError ? { rootError } : {})
       }
     }
 

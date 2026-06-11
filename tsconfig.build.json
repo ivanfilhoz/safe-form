@@ -3,9 +3,12 @@
   "compilerOptions": {
     "allowJs": false,
     "declaration": true,
-    "declarationMap": true,
+    // The published package only ships dist, so declaration maps would point
+    // at missing files; inlineSources keeps the source maps self-contained
+    "declarationMap": false,
     "emitDeclarationOnly": false,
     "incremental": false,
+    "inlineSources": true,
     "noEmit": false,
     "outDir": "./dist",
     "sourceMap": true

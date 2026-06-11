@@ -1,6 +1,7 @@
 export { FormActionError } from './FormActionError.js'
 export type {
   FormAction,
+  FormFieldError,
   FormFieldErrors,
   FormInput,
   FormSchema,

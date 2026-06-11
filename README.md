@@ -114,6 +114,38 @@ export const HelloForm = () => {
 }
 ```
 
+## Progressive enhancement
+
+`connect()` wires the form both ways. With JavaScript enabled, values are
+serialized with rich types: date inputs produce `Date` objects, checkboxes
+produce booleans, and number inputs produce numbers. Without JavaScript, the
+browser submits the native `FormData` as a fallback, so every value reaches
+the server action as a plain string (e.g. `"2022-01-01"` for dates, `"on"` or
+absent for checkboxes).
+
+If you rely on the no-JS fallback, make your schema accept both
+representations. With zod, for example:
+
+```ts
+export const exampleSchema = z.object({
+  birthDate: z.coerce.date(),
+  subscribed: z.coerce.boolean().optional().default(false)
+})
+```
+
+## Notes
+
+- Date inputs follow the `valueAsDate` convention: values are interpreted as
+  midnight UTC, both when reading from and writing to the input.
+- Validation issues without a path (e.g. object-level refinements) are exposed
+  separately as `rootError` (also passed as the third argument to `onError`),
+  so `fieldErrors` stays keyed strictly by your schema's fields. `rootError`
+  only refreshes on full validation (`submit()`, `validate()` or `reset()`) —
+  field-level validation can't tell whether an object-level rule passes.
+- `submit()` resolves once validation and the `onSubmit` callback finish; the
+  server action itself runs in a transition. Use `onSuccess`/`onError` (or the
+  returned `response`/`error`) to react to the action result.
+
 ## License
 
 [MIT](LICENSE)

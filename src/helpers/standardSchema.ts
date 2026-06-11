@@ -1,6 +1,11 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { FormFieldErrors, FormInput } from '../types.js'
+import { FormFieldError, FormFieldErrors, FormInput } from '../types.js'
 import { shallowEqual } from './shallowEqual.js'
+
+export type ParsedSchemaIssues<Input extends FormInput> = {
+  fieldErrors: FormFieldErrors<Input>
+  rootError?: FormFieldError
+}
 
 export type StandardSchemaValidationResult<Output> =
   | {
@@ -28,33 +33,51 @@ export const getIssuePath = (issue: StandardSchemaV1.Issue): PropertyKey[] => {
 
 export const parseStandardSchemaIssues = <Input extends FormInput>(
   issues: ReadonlyArray<StandardSchemaV1.Issue>
-): FormFieldErrors<Input> => {
+): ParsedSchemaIssues<Input> => {
   const issuesByField = new Map<string, StandardSchemaV1.Issue[]>()
+  const rootIssues: StandardSchemaV1.Issue[] = []
 
   for (const issue of issues) {
-    const [field = '_root'] = getIssuePath(issue)
+    const [field] = getIssuePath(issue)
+
+    if (field === undefined) {
+      rootIssues.push(issue)
+      continue
+    }
+
     const key = String(field)
     issuesByField.set(key, [...(issuesByField.get(key) ?? []), issue])
   }
 
-  return Array.from(issuesByField.entries()).reduce<FormFieldErrors<Input>>(
-    (acc, [key, rawErrors]) => {
-      const all = rawErrors
-        .filter((issue) => shallowEqual(getIssuePath(issue), [key]))
-        .map((issue) => issue.message)
+  const fieldErrors: Record<string, FormFieldError> = {}
 
-      return {
-        ...acc,
-        [key]: {
-          first: all[0],
-          all,
-          hasChildErrors: rawErrors.length > all.length,
-          rawErrors
-        }
+  for (const [key, rawErrors] of issuesByField) {
+    // Top-level messages: the issue points at the field itself, not a child
+    const all = rawErrors
+      .filter((issue) => shallowEqual(getIssuePath(issue), [key]))
+      .map((issue) => issue.message)
+
+    fieldErrors[key] = {
+      first: all[0],
+      all,
+      hasChildErrors: rawErrors.length > all.length,
+      rawErrors
+    }
+  }
+
+  const rootError: FormFieldError | undefined = rootIssues.length
+    ? {
+        first: rootIssues[0].message,
+        all: rootIssues.map((issue) => issue.message),
+        hasChildErrors: false,
+        rawErrors: rootIssues
       }
-    },
-    {}
-  )
+    : undefined
+
+  return {
+    fieldErrors: fieldErrors as FormFieldErrors<Input>,
+    rootError
+  }
 }
 
 export const validateStandardSchema = async <Schema extends StandardSchemaV1>(

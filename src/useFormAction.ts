@@ -8,7 +8,13 @@ import {
   useTransition
 } from 'react'
 import { createFormData } from './helpers/serializer.js'
-import { FormAction, FormFieldErrors, FormInput, FormState } from './types.js'
+import {
+  FormAction,
+  FormFieldError,
+  FormFieldErrors,
+  FormInput,
+  FormState
+} from './types.js'
 
 type UseFormActionParams<Input extends FormInput, FormResponse> = {
   action: FormAction<Input, FormResponse> | null
@@ -16,7 +22,8 @@ type UseFormActionParams<Input extends FormInput, FormResponse> = {
   onSuccess?: (response: FormResponse) => void
   onError?: (
     error: string | null,
-    fieldErrors: FormFieldErrors<Input> | null
+    fieldErrors: FormFieldErrors<Input> | null,
+    rootError: FormFieldError | null
   ) => void
 }
 
@@ -24,6 +31,7 @@ type UseFormActionReturn<Input extends FormInput, FormResponse> = {
   error: string | null
   response: FormResponse | null
   fieldErrors: FormFieldErrors<Input> | null
+  rootError: FormFieldError | null
   isPending: boolean
   formAction: (payload: FormData) => void
   submit: (input: Input) => void
@@ -71,10 +79,11 @@ export const useFormAction = <Input extends FormInput, FormResponse>({
   )
 
   useEffect(() => {
-    if (formState?.error || formState?.fieldErrors) {
+    if (formState?.error || formState?.fieldErrors || formState?.rootError) {
       onErrorRef.current?.(
         formState?.error ?? null,
-        formState?.fieldErrors ?? null
+        formState?.fieldErrors ?? null,
+        formState?.rootError ?? null
       )
     }
     if (formState?.response) {
@@ -86,6 +95,7 @@ export const useFormAction = <Input extends FormInput, FormResponse>({
     error: formState?.error ?? null,
     response: formState?.response ?? null,
     fieldErrors: formState?.fieldErrors ?? null,
+    rootError: formState?.rootError ?? null,
     isPending: isActionPending || isTransitionPending,
     formAction,
     submit

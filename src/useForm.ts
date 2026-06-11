@@ -21,6 +21,7 @@ import {
 } from './helpers/standardSchema.js'
 import {
   FormAction,
+  FormFieldError,
   FormFieldErrors,
   FormInput,
   FormSchema,
@@ -109,7 +110,8 @@ type UseFormParams<Input extends FormInput, FormResponse> = {
   onSuccess?: (response: FormResponse) => void
   onError?: (
     error: string | null,
-    fieldErrors: FormFieldErrors<Input> | null
+    fieldErrors: FormFieldErrors<Input> | null,
+    rootError: FormFieldError | null
   ) => void
 }
 
@@ -117,10 +119,11 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
   error: string | null
   response: FormResponse | null
   fieldErrors: FormFieldErrors<Input>
+  rootError: FormFieldError | null
   isPending: boolean
   isDirty: boolean
   reset: () => void
-  submit: () => void
+  submit: () => Promise<void>
   getValues: () => Partial<Input>
   setValues: (values: Partial<Input>) => void
   connect: () => FormHTMLAttributes<HTMLFormElement>
@@ -132,6 +135,7 @@ type UseFormReturn<Input extends FormInput, FormResponse> = {
     | {
         success: false
         fieldErrors: FormFieldErrors<Input>
+        rootError: FormFieldError | null
       }
   >
   getField: <Field extends keyof Input>(name: Field) => Input[Field] | undefined
@@ -166,7 +170,8 @@ export const useForm = <Input extends FormInput, FormResponse>({
     submit: serverSubmit,
     error: serverError,
     response: serverResponse,
-    fieldErrors: serverFieldErrors
+    fieldErrors: serverFieldErrors,
+    rootError: serverRootError
   } = useFormAction({
     action: action ?? null,
     initialState,
@@ -182,6 +187,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
   >(null)
   const [isDirty, setIsDirty] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
+  const [rootError, setRootError] = useState<FormFieldError | null>(null)
   const values = useRef<Partial<Input>>(initialValues)
   const [, setFlushToggle] = useState(false)
 
@@ -192,6 +198,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const reset = useCallback<ReturnObject['reset']>(() => {
     values.current = initialValues
     setFieldErrors({})
+    setRootError(null)
     setIsDirty(false)
     flush()
   }, [flush, initialValues])
@@ -246,16 +253,21 @@ export const useForm = <Input extends FormInput, FormResponse>({
     const validation = await validateStandardSchema(schema, values.current)
 
     if (!validation.success) {
-      const fieldErrors = parseStandardSchemaIssues<Input>(validation.issues)
+      const { fieldErrors, rootError } = parseStandardSchemaIssues<Input>(
+        validation.issues
+      )
       setFieldErrors(fieldErrors)
+      setRootError(rootError ?? null)
       return {
         success: false,
-        fieldErrors
+        fieldErrors,
+        rootError: rootError ?? null
       }
     }
 
-    // Reset field errors if validation is successful
+    // Reset errors if validation is successful
     setFieldErrors({})
+    setRootError(null)
     return {
       success: true,
       value: validation.value
@@ -275,7 +287,8 @@ export const useForm = <Input extends FormInput, FormResponse>({
       })
 
       if (!validation.success) {
-        const errors = parseStandardSchemaIssues<Input>(validation.issues)[name]
+        const errors = parseStandardSchemaIssues<Input>(validation.issues)
+          .fieldErrors[name]
 
         if (errors) {
           setFieldErrors((fieldErrors) => ({
@@ -349,10 +362,17 @@ export const useForm = <Input extends FormInput, FormResponse>({
         setField(name, newValue, validate)
       }
 
+      const initialValue = initialValues?.[name]
+
       return {
         ref: inputRef.current[name],
         name: name.toString(),
-        defaultValue: getDefaultValue(initialValues?.[name]),
+        // Booleans bind to checkboxes, where only defaultChecked applies
+        ...(typeof initialValue === 'boolean'
+          ? { defaultChecked: initialValue }
+          : initialValue === null || initialValue === undefined
+            ? {}
+            : { defaultValue: getDefaultValue(initialValue) }),
         onBlur: () => mutate(name, validateOnBlur),
         onChange: validateOnChange ? () => mutate(name) : undefined
       } satisfies InputHTMLAttributes<HTMLInputElement> &
@@ -371,13 +391,14 @@ export const useForm = <Input extends FormInput, FormResponse>({
   )
 
   const submit = useCallback<ReturnObject['submit']>(async () => {
-    // Reset field errors
+    // Reset errors
     setFieldErrors({})
+    setRootError(null)
 
     // Validate all fields before submitting
     const validation = await validate()
     if (!validation.success) {
-      onError?.(null, validation.fieldErrors)
+      onError?.(null, validation.fieldErrors, validation.rootError)
       return
     }
 
@@ -403,7 +424,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
         event.preventDefault()
         event.stopPropagation()
 
-        submit()
+        await submit()
       },
       // Pass the form action as a graceful fallback
       action: formAction
@@ -415,6 +436,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     response: serverResponse,
     fieldErrors:
       serverFieldErrors ?? fieldErrors ?? ({} as FormFieldErrors<Input>),
+    rootError: serverRootError ?? rootError,
     isPending,
     isDirty,
     reset,

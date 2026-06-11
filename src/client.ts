@@ -2,6 +2,7 @@
 
 export type {
   FormAction,
+  FormFieldError,
   FormFieldErrors,
   FormInput,
   FormSchema,

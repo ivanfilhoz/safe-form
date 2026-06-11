@@ -88,4 +88,41 @@ describe('useForm', () => {
     expect(dateInput.value).toBe('1992-05-14')
     expect(checkbox.checked).toBe(true)
   })
+
+  test('applies boolean and date initial values to bound fields', () => {
+    function InitialValuesForm() {
+      const { bindField, connect } = useForm<TestInput, string>({
+        initialValues: {
+          name: 'Ivan Filho',
+          birthDate: new Date('1992-05-14T00:00:00.000Z'),
+          subscribed: true
+        }
+      })
+
+      return (
+        <form {...connect()}>
+          <label htmlFor='initial-birth-date'>Birth date</label>
+          <input
+            {...bindField('birthDate')}
+            id='initial-birth-date'
+            type='date'
+          />
+          <label htmlFor='initial-subscribed'>Subscribed</label>
+          <input
+            {...bindField('subscribed')}
+            id='initial-subscribed'
+            type='checkbox'
+          />
+        </form>
+      )
+    }
+
+    render(<InitialValuesForm />)
+
+    const dateInput = screen.getByLabelText('Birth date') as HTMLInputElement
+    const checkbox = screen.getByLabelText('Subscribed') as HTMLInputElement
+
+    expect(dateInput.value).toBe('1992-05-14')
+    expect(checkbox.checked).toBe(true)
+  })
 })

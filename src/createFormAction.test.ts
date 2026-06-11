@@ -57,4 +57,43 @@ test('returns field errors for standard schema issues', async () => {
   expect(result.fieldErrors?.name?.first).toBe(
     'Name must be at least 3 characters'
   )
+  expect(result.rootError).toBeUndefined()
+})
+
+test('returns a root error for issues without a path', async () => {
+  const rootSchema: StandardSchemaV1<
+    { password?: unknown; confirm?: unknown },
+    { password: string; confirm: string }
+  > = {
+    '~standard': {
+      version: 1,
+      vendor: 'safe-form-test',
+      validate(value: unknown) {
+        const input = value as { password?: unknown; confirm?: unknown }
+
+        if (input.password !== input.confirm) {
+          return {
+            issues: [{ message: 'Passwords do not match' }]
+          }
+        }
+
+        return {
+          value: {
+            password: String(input.password),
+            confirm: String(input.confirm)
+          }
+        }
+      }
+    }
+  }
+
+  const action = createFormAction(rootSchema, async () => 'ok')
+
+  const result = await action(
+    null,
+    createFormData({ password: 'one', confirm: 'two' })
+  )
+
+  expect(result.rootError?.first).toBe('Passwords do not match')
+  expect(result.fieldErrors).toEqual({})
 })

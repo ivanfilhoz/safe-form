@@ -2,19 +2,23 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export type FormInput = Record<string, unknown>
 
+export type FormFieldError = {
+  first: string | undefined
+  all: string[]
+  hasChildErrors: boolean
+  rawErrors: StandardSchemaV1.Issue[]
+}
+
 export type FormFieldErrors<Input extends FormInput> = {
-  [field in keyof Input | string]?: {
-    first: string | undefined
-    all: string[]
-    hasChildErrors: boolean
-    rawErrors: StandardSchemaV1.Issue[]
-  }
+  [field in keyof Input]?: FormFieldError
 }
 
 export type FormState<Input extends FormInput, FormResponse> = {
   response?: FormResponse
   error?: string
   fieldErrors?: FormFieldErrors<Input>
+  // Issues without a path (e.g. object-level refinements)
+  rootError?: FormFieldError
 }
 
 export type FormAction<Input extends FormInput, FormResponse> = (
