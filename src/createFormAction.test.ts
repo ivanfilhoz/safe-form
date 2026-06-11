@@ -1,7 +1,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { expect, test } from 'vitest'
-import { createFormData } from './helpers/serializer'
 import { createFormAction } from './createFormAction'
+import { createFormData } from './helpers/serializer'
 
 const schema: StandardSchemaV1<
   { name?: unknown },

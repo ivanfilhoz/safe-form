@@ -33,7 +33,10 @@
     "test:compat:waku": "cd test/compat/waku && waku build",
     "test:compat:react-router-vite": "react-router build test/compat/react-router-vite",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"./src/**/*.{ts,tsx}\""
+    "lint": "biome lint ./src",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check ."
   },
   "repository": {
     "type": "git",
@@ -61,20 +64,15 @@
   },
   "homepage": "https://github.com/ivanfilhoz/safe-form#readme",
   "devDependencies": {
+    "@biomejs/biome": "2.4.16",
     "@react-router/dev": "^7.16.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20.11.25",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.60.1",
-    "@typescript-eslint/parser": "^8.60.1",
     "@vitejs/plugin-react": "^5.2.0",
-    "eslint": "^8.57.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^24.0.0",
     "next": "^16.2.7",
-    "prettier": "^3.2.5",
-    "prettier-config-standard": "^7.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router": "^7.16.0",

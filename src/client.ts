@@ -1,7 +1,5 @@
 'use client'
 
-export { useForm } from './useForm.js'
-export { useFormAction } from './useFormAction.js'
 export type {
   FormAction,
   FormFieldErrors,
@@ -11,3 +9,5 @@ export type {
   InferSchemaInput,
   InferSchemaOutput
 } from './types.js'
+export { useForm } from './useForm.js'
+export { useFormAction } from './useFormAction.js'

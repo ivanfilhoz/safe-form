@@ -1,13 +1,13 @@
 'use client'
 
 import {
+  createRef,
   FormHTMLAttributes,
   HTMLAttributes,
   InputHTMLAttributes,
   RefAttributes,
   RefObject,
   SyntheticEvent,
-  createRef,
   useCallback,
   useRef,
   useState
@@ -260,7 +260,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       success: true,
       value: validation.value
     }
-  }, [setFieldErrors, schema, values])
+  }, [schema])
 
   const validateField = useCallback<ReturnObject['validateField']>(
     async (name) => {
@@ -297,7 +297,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       // The field is valid
       return true
     },
-    [setFieldErrors, schema]
+    [schema]
   )
 
   const getField = useCallback<ReturnObject['getField']>((name) => {
@@ -358,7 +358,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
       } satisfies InputHTMLAttributes<HTMLInputElement> &
         RefAttributes<BindableField>
     },
-    [inputRef, setField, validateOnBlur, validateOnChange, initialValues]
+    [setField, validateOnBlur, validateOnChange, initialValues]
   )
 
   const getFieldErrorByPath = useCallback<ReturnObject['getFieldErrorByPath']>(
