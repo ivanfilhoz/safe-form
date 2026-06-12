@@ -7,7 +7,7 @@ import {
   waitFor
 } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
-import type { FormAction } from './types'
+import type { FormAction, FormState } from './types'
 import { useForm } from './useForm'
 
 type SignupInput = { name: string }
@@ -266,6 +266,196 @@ describe('useForm', () => {
     await waitFor(() => {
       expect(screen.getByText('Name is too short')).toBeDefined()
       expect(screen.queryByText('Signups are closed')).toBeNull()
+    })
+  })
+
+  test('getFieldErrorByPath reads the displayed server errors', async () => {
+    const action: FormAction<SignupInput, string> = async () => ({
+      fieldErrors: {
+        name: {
+          first: 'This name is taken',
+          all: ['This name is taken'],
+          hasChildErrors: false,
+          rawErrors: [{ message: 'This name is taken', path: ['name'] }]
+        }
+      }
+    })
+
+    function ByPathForm() {
+      const { bindField, connect, getFieldErrorByPath } = useForm<
+        SignupInput,
+        string
+      >({
+        action,
+        initialValues: { name: 'Ivan' },
+        schema: signupSchema
+      })
+
+      const byPath = getFieldErrorByPath(['name'])
+
+      return (
+        <form {...connect()}>
+          <label htmlFor='by-path-name'>Name</label>
+          <input {...bindField('name')} id='by-path-name' />
+          {byPath && <em data-testid='by-path'>{byPath}</em>}
+          <button type='submit'>Submit</button>
+        </form>
+      )
+    }
+
+    render(<ByPathForm />)
+
+    fireEvent.submit(screen.getByText('Submit').closest('form') as Element)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('by-path').textContent).toBe(
+        'This name is taken'
+      )
+    })
+  })
+
+  test('a late server response replaces local errors entirely', async () => {
+    let resolveResponse:
+      | ((state: FormState<SignupInput, string>) => void)
+      | undefined
+
+    const action: FormAction<SignupInput, string> = () =>
+      new Promise((resolve) => {
+        resolveResponse = resolve
+      })
+
+    function RaceForm() {
+      const { bindField, connect, error, fieldErrors } = useForm<
+        SignupInput,
+        string
+      >({
+        action,
+        validateOnBlur: true,
+        initialValues: { name: 'Ivan' },
+        schema: signupSchema
+      })
+
+      return (
+        <form {...connect()}>
+          <label htmlFor='race-name'>Name</label>
+          <input {...bindField('name')} id='race-name' />
+          {fieldErrors.name && <span>{fieldErrors.name.first}</span>}
+          {error && <p>{error}</p>}
+          <button type='submit'>Submit</button>
+        </form>
+      )
+    }
+
+    render(<RaceForm />)
+
+    // Submit; the action stays pending
+    fireEvent.submit(screen.getByText('Submit').closest('form') as Element)
+
+    // A failing validating blur while the submission is in flight
+    const input = screen.getByLabelText('Name') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'Iv' } })
+    fireEvent.blur(input)
+
+    await waitFor(() => {
+      expect(screen.getByText('Name is too short')).toBeDefined()
+    })
+
+    // The response lands last, so the server run is displayed alone: the
+    // error-only response must not mix with the local field error
+    resolveResponse?.({ error: 'This name is taken' })
+
+    await waitFor(() => {
+      expect(screen.getByText('This name is taken')).toBeDefined()
+      expect(screen.queryByText('Name is too short')).toBeNull()
+    })
+  })
+
+  test('a local validation finishing after the response supersedes it', async () => {
+    let resolveResponse:
+      | ((state: FormState<SignupInput, string>) => void)
+      | undefined
+    let resolveValidation:
+      | ((result: StandardSchemaV1.Result<SignupInput>) => void)
+      | undefined
+
+    const action: FormAction<SignupInput, string> = () =>
+      new Promise((resolve) => {
+        resolveResponse = resolve
+      })
+
+    // Valid input passes synchronously (the submit path); invalid input
+    // hangs until the test resolves it (the mid-flight blur path)
+    const deferredSchema: StandardSchemaV1<
+      Record<string, unknown>,
+      SignupInput
+    > = {
+      '~standard': {
+        version: 1,
+        vendor: 'safe-form-test',
+        validate(value) {
+          const input = value as { name?: unknown }
+
+          if (typeof input.name === 'string' && input.name.length >= 3) {
+            return { value: { name: input.name } }
+          }
+
+          return new Promise((resolve) => {
+            resolveValidation = resolve
+          })
+        }
+      }
+    }
+
+    function LateValidationForm() {
+      const { bindField, connect, error, fieldErrors } = useForm<
+        SignupInput,
+        string
+      >({
+        action,
+        validateOnBlur: true,
+        initialValues: { name: 'Ivan' },
+        schema: deferredSchema
+      })
+
+      return (
+        <form {...connect()}>
+          <label htmlFor='late-name'>Name</label>
+          <input {...bindField('name')} id='late-name' />
+          {fieldErrors.name && <span>{fieldErrors.name.first}</span>}
+          {error && <p>{error}</p>}
+          <button type='submit'>Submit</button>
+        </form>
+      )
+    }
+
+    render(<LateValidationForm />)
+
+    // Submit (validation passes synchronously); the action stays pending
+    fireEvent.submit(screen.getByText('Submit').closest('form') as Element)
+
+    // A validating blur whose async validation stays in flight
+    const input = screen.getByLabelText('Name') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'Iv' } })
+    fireEvent.blur(input)
+
+    // Wait for the submission to reach the action, then respond: the
+    // server response lands first and is displayed
+    await waitFor(() => {
+      expect(resolveResponse).toBeDefined()
+    })
+    resolveResponse?.({ error: 'This name is taken' })
+    await waitFor(() => {
+      expect(screen.getByText('This name is taken')).toBeDefined()
+    })
+
+    // The blur's validation finishes last, so its run wins
+    resolveValidation?.({
+      issues: [{ message: 'Name is too short', path: ['name'] }]
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Name is too short')).toBeDefined()
+      expect(screen.queryByText('This name is taken')).toBeNull()
     })
   })
 })

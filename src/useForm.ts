@@ -32,6 +32,9 @@ import { useFormAction } from './useFormAction.js'
 type BindableField = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 type FieldDefaultValue = InputHTMLAttributes<HTMLInputElement>['defaultValue']
 
+// Stable identity for the no-errors case
+const NO_FIELD_ERRORS: FormFieldErrors<FormInput> = Object.freeze({})
+
 const getInputDateValue = (value: Date) => value.toISOString().slice(0, 10)
 
 const getStringValue = (value: unknown) => {
@@ -263,6 +266,10 @@ export const useForm = <Input extends FormInput, FormResponse>({
     // Validate all fields
     const validation = await validateStandardSchema(schema, values.current)
 
+    // Mark again when committing results, so this run also supersedes any
+    // server response that landed while the validation was in flight
+    setServerErrorsStale(true)
+
     if (!validation.success) {
       const { fieldErrors, rootError } = parseStandardSchemaIssues<Input>(
         validation.issues
@@ -299,6 +306,10 @@ export const useForm = <Input extends FormInput, FormResponse>({
       const validation = await validateStandardSchema(schema, {
         [name]: value
       })
+
+      // Mark again when committing results, so this run also supersedes any
+      // server response that landed while the validation was in flight
+      setServerErrorsStale(true)
 
       if (!validation.success) {
         const errors = parseStandardSchemaIssues<Input>(validation.issues)
@@ -395,13 +406,23 @@ export const useForm = <Input extends FormInput, FormResponse>({
     [setField, validateOnBlur, validateOnChange, initialValues]
   )
 
+  // Displayed errors always come from a single validation run: the latest
+  // server response, unless a client-side run has superseded it. When the
+  // server is authoritative there is no fallback to local state — local
+  // errors are by definition older than the server response.
+  const displayedError = serverErrorsStale ? null : serverError
+  const displayedFieldErrors = serverErrorsStale
+    ? fieldErrors
+    : (serverFieldErrors ?? (NO_FIELD_ERRORS as FormFieldErrors<Input>))
+  const displayedRootError = serverErrorsStale ? rootError : serverRootError
+
   const getFieldErrorByPath = useCallback<ReturnObject['getFieldErrorByPath']>(
     ([fieldName, ...subpath]) => {
-      return fieldErrors[fieldName]?.rawErrors.find((e) =>
+      return displayedFieldErrors[fieldName]?.rawErrors.find((e) =>
         shallowEqual(getIssuePath(e), [fieldName, ...subpath])
       )?.message
     },
-    [fieldErrors]
+    [displayedFieldErrors]
   )
 
   const submit = useCallback<ReturnObject['submit']>(async () => {
@@ -446,14 +467,10 @@ export const useForm = <Input extends FormInput, FormResponse>({
   }, [submit, formAction])
 
   return {
-    // Displayed errors always come from a single validation run: the latest
-    // server response, unless a client-side run has superseded it
-    error: serverErrorsStale ? null : serverError,
+    error: displayedError,
     response: serverResponse,
-    fieldErrors: serverErrorsStale
-      ? fieldErrors
-      : (serverFieldErrors ?? fieldErrors),
-    rootError: serverErrorsStale ? rootError : (serverRootError ?? rootError),
+    fieldErrors: displayedFieldErrors,
+    rootError: displayedRootError,
     isPending,
     isDirty,
     reset,
