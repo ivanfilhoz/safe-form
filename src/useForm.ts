@@ -177,9 +177,13 @@ export const useForm = <Input extends FormInput, FormResponse>({
     initialState,
     onSuccess: (response) => {
       setIsDirty(false)
+      setServerErrorsStale(false)
       onSuccess?.(response)
     },
-    onError
+    onError: (error, fieldErrors, rootError) => {
+      setServerErrorsStale(false)
+      onError?.(error, fieldErrors, rootError)
+    }
   })
 
   const inputRef = useRef<
@@ -188,6 +192,9 @@ export const useForm = <Input extends FormInput, FormResponse>({
   const [isDirty, setIsDirty] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FormFieldErrors<Input>>({})
   const [rootError, setRootError] = useState<FormFieldError | null>(null)
+  // Whether a client-side validation run has superseded the last server
+  // response, so displayed errors never mix two validation runs
+  const [serverErrorsStale, setServerErrorsStale] = useState(false)
   const values = useRef<Partial<Input>>(initialValues)
   const [, setFlushToggle] = useState(false)
 
@@ -199,6 +206,7 @@ export const useForm = <Input extends FormInput, FormResponse>({
     values.current = initialValues
     setFieldErrors({})
     setRootError(null)
+    setServerErrorsStale(true)
     setIsDirty(false)
     flush()
   }, [flush, initialValues])
@@ -241,6 +249,9 @@ export const useForm = <Input extends FormInput, FormResponse>({
   )
 
   const validate = useCallback<ReturnObject['validate']>(async () => {
+    // This validation run supersedes the last server response
+    setServerErrorsStale(true)
+
     // If there is no schema, skip validation
     if (!schema) {
       return {
@@ -280,6 +291,9 @@ export const useForm = <Input extends FormInput, FormResponse>({
 
       // If there is no schema, skip validation
       if (!schema) return true
+
+      // This validation run supersedes the last server response
+      setServerErrorsStale(true)
 
       // Validate a single field
       const validation = await validateStandardSchema(schema, {
@@ -432,11 +446,14 @@ export const useForm = <Input extends FormInput, FormResponse>({
   }, [submit, formAction])
 
   return {
-    error: serverError,
+    // Displayed errors always come from a single validation run: the latest
+    // server response, unless a client-side run has superseded it
+    error: serverErrorsStale ? null : serverError,
     response: serverResponse,
-    fieldErrors:
-      serverFieldErrors ?? fieldErrors ?? ({} as FormFieldErrors<Input>),
-    rootError: serverRootError ?? rootError,
+    fieldErrors: serverErrorsStale
+      ? fieldErrors
+      : (serverFieldErrors ?? fieldErrors),
+    rootError: serverErrorsStale ? rootError : (serverRootError ?? rootError),
     isPending,
     isDirty,
     reset,

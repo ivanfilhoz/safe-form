@@ -142,6 +142,11 @@ export const exampleSchema = z.object({
   so `fieldErrors` stays keyed strictly by your schema's fields. `rootError`
   only refreshes on full validation (`submit()`, `validate()` or `reset()`) —
   field-level validation can't tell whether an object-level rule passes.
+- The displayed `error`, `fieldErrors` and `rootError` always come from a
+  single validation run. Server-side errors are shown until the next
+  client-side validation run (`validate()`, a schema-backed `validateField()`
+  — including a validating blur/change — or `reset()`) supersedes them; a new
+  server response takes precedence again.
 - `submit()` resolves once validation and the `onSubmit` callback finish; the
   server action itself runs in a transition. Use `onSuccess`/`onError` (or the
   returned `response`/`error`) to react to the action result.
